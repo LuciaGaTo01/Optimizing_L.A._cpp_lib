@@ -24,25 +24,43 @@ typedef float   REAL;
 typedef double  REAL;
 #endif
 
-#define n 100
+#define m 10
 
 
-static REAL linpack (long nreps, int job);
-static void matgen(auto a, auto l, auto ipvt, auto b);
-static void dgefa(auto a, auto b, auto ipvt, int *info);
-static void dgesl(auto a, auto c, auto ipvt, auto b, int job);
-static int idamax (int init, auto dx, int incx);
+static REAL linpack (long nreps, int job, int n, char *matOpt);
+static void matgen(auto a, auto l, auto ipvt, auto b, int n);
+static void dgefa(auto u, auto l, int n, auto ipvt, int *info);
+static void dgesl(auto u, auto l, int n, auto ipvt, auto b, int job);
+static int idamax (int n, int init, auto dx, int incx);
 
 using namespace std::chrono_literals;
 
 int main (void){
     long nreps;
-    char buf[5];
+    char buf[5], opt[5];
+    int n;
 
     while(1){
-        std::cout << "Enter q to quit or any other letter to continue: ";
-        std::cin >> buf;
-        if (buf[0] == 'q' || buf[0] == 'Q') break;
+        // MENU
+        std::cout << "Introduce one of the following options: \n\n"         \
+                  << "a - Dinamic matrix\n"                                 \
+                  << "b - Fixed size matrix (" << m << "x" << m << ")\n"    \
+                  << "c - General matrix (" << m << "x" << m << ")\n"       \
+                  << "q - QUIT\n\n";
+        std::cin >> opt;
+
+        if (opt[0] == 'q' || opt[0] == 'Q') break;
+
+        if (opt[0] == 'a' || opt[0] == 'A'){
+            std::cout << "\n\nIntroduce matrix size: ";
+            std:: cin >> buf;
+
+            if (buf[0]=='\0' || buf[0]=='\n') n = m;
+            else n = atoi(buf);
+        } else {
+            n = m;
+        }
+
         std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
         std::cout << "Machine precision: " << BASE10DIG << " digits. \n";
         std::cout << "Array size " << n << " X " << n << ". \n";
@@ -51,8 +69,9 @@ int main (void){
         std::cout << "----------------------------------------------------\n";
 
         nreps = 1;
-        while (linpack(nreps,0)<10.)
+        while (linpack(nreps,0, n, opt)<10.){
             nreps *= 2;
+        }
         
         std::cout << '\n';
     }
@@ -68,16 +87,36 @@ INPUT VARIABLES:
     nreps     number of times to repeat the computations
     job       0 to solve a*x = b 
               1 to solve trans(a)*x = b
+    n         matrices dimensions
+    matOpt    matrix type to use
 */
 
-static REAL linpack (long nreps, int job){
+static REAL linpack (long nreps, int job, int n, char *matOpt){
 
     REAL kflops, toverhead, ops, tdgefa = 0.0, tdgesl = 0.0, totalt = 0.0;
     int info = 0;
 
-    STD_LA::fixed_size_matrix<REAL, n, n> l, u;
-    STD_LA::fixed_size_matrix<int, n, n> ipvt;
-    STD_LA::fixed_size_column_vector<REAL, n> b;
+    STD_LA::general_matrix<REAL, m, m> l, u;
+    STD_LA::general_matrix<int, m, m> ipvt;
+    STD_LA::general_column_vector<REAL, m> b;
+
+    if (matOpt[0] == 'a' || matOpt[0] == 'A'){
+        STD_LA::dynamic_matrix<REAL> l, u;
+        STD_LA::dynamic_matrix<int> ipvt;
+        STD_LA::dynamic_column_vector<REAL> b;
+
+        l.resize(n,n);
+        u.resize(n,n);
+        ipvt.resize(n,n);
+        b.resize_rows(n);
+    }
+
+    if (matOpt[0] == 'b' || matOpt[0] == 'B'){
+        STD_LA::fixed_size_matrix<REAL, m, m> l, u;
+        STD_LA::fixed_size_matrix<int, m, m> ipvt;
+        STD_LA::fixed_size_column_vector<REAL, m> b;
+    }
+
 
     ops = ((2.0*n*n*n)/3.0+2.0*n*n);
 
@@ -85,13 +124,13 @@ static REAL linpack (long nreps, int job){
     using secs = std::chrono::seconds;
     auto t0 = clk::now();
     for (int i = 0; i < nreps; ++i){
-        matgen(&u, &l, &ipvt, &b);
+        matgen(&u, &l, &ipvt, &b, n);
         auto t1 = clk::now();
-        dgefa(&u, &l, &ipvt, &info);
+        dgefa(&u, &l, n, &ipvt, &info);
         auto t2 = clk::now();
         tdgefa += (t2-t1)/1.s;
         auto t3 = clk::now();
-        dgesl(&u, &l, &ipvt, &b, job);
+        dgesl(&u, &l, n, &ipvt, &b, job);
         auto t4 = clk::now();
         tdgesl += (t4-t3)/1.s;
     }
@@ -121,9 +160,10 @@ INPUT VARIABLES:
     l       lower matrix
     ipvt    matrix with row permutations
     b       vector
+    n       matrices dimensions
 */
 
-static void matgen(auto a, auto l, auto ipvt, auto b){
+static void matgen(auto a, auto l, auto ipvt, auto b, int n){
     int init, i, j;
 
     init = 1325;
@@ -153,13 +193,14 @@ FUNCTIONALLITY:
 INPUT VARIABLES:
     u       upper triangular matrix
     l       lower triangular matrix
+    n       matrices dimensions
     ipvt    matrix with row permutations
     info    stores the index of the diagonal if the obtained value is 0 (non-invertible matrix)
 */
 
-static void dgefa(auto u, auto l, auto ipvt, int *info){
+static void dgefa(auto u, auto l, int n, auto ipvt, int *info){
     REAL t, s;
-    int i, t2;
+    int i;
 
     // gaussian elimination with partial pivoting
 
@@ -167,7 +208,7 @@ static void dgefa(auto u, auto l, auto ipvt, int *info){
     for (int k = 0; k < n; ++k){
 
         // find l = maximum value pivot index
-        i = idamax(k, u->column(k), 1);
+        i = idamax(n, k, u->column(k), 1);
 
         s = (*u)(i,k);
 
@@ -211,13 +252,14 @@ FUNCTIONALLITY:
 INPUT VARIABLES:
     u       upper triangular matrix
     l       lower triangular matrix
+    n       matrices dimensions
     ipvt    matrix with row permutations
     b       vector
     job     0 to solve a*x = b 
             1 to solve trans(a)*x = b
 */
 
-static void dgesl(auto u, auto l, auto ipvt, auto b, int job){
+static void dgesl(auto u, auto l, int n, auto ipvt, auto b, int job){
     REAL t;
     // int i;
     int nm1;
@@ -287,13 +329,14 @@ FUNCTIONALLITY:
     Finds the index of element having max. absolute value.
 
 INPUT VARIABLES:
+    n       number of components in the vector
     init    initial index
     dx      vector
     incx    incremental value for the index
 
 */
 
-static int idamax (int init, auto dx, int incx)
+static int idamax (int n, int init, auto dx, int incx)
 {
     REAL dmax;
     int itemp = init;
