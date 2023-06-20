@@ -17,4 +17,4 @@ include_directories(
   ${FETCHCONTENT_BASE_DIR}/mdspan-src/include
 )
 
-add_executable(linalg main.cpp)
+add_executable(linalg main.c)

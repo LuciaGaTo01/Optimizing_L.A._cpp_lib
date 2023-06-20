@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <cfloat>
 #include "matrix"
 #include "general_definitions.hpp"
 

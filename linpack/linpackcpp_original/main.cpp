@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cfloat>
 #include "matrix"
 #include "general_definitions.hpp"
 
