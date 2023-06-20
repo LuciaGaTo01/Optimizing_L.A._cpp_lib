@@ -3,9 +3,18 @@ project(latest VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include_directories(linpack
-                    PRIVATE
-                        <linear-algebra-installation-path>
+include(FetchContent)
+
+FetchContent_Declare(linalg
+    GIT_REPOSITORY "https://github.com/BobSteagall/wg21"
+    GIT_SHALLOW ON
 )
 
-add_executable(linpack main.cpp general_definitions.hpp)
+FetchContent_MakeAvailable(linalg)
+
+include_directories(
+  ${FETCHCONTENT_BASE_DIR}/linalg-src/include
+  ${FETCHCONTENT_BASE_DIR}/mdspan-src/include
+)
+
+add_executable(linalg main.cpp general_definitions.hpp)
