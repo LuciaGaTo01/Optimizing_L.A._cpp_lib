@@ -12,25 +12,27 @@
 #include <iostream>
 #include <cfloat>
 #include <iomanip>
+#include <cmath>
+#include <string_view>
 
 #define DP
 
 #ifdef SP
-#define ZERO        0.0
-#define ONE         1.0
-#define PREC        "Single"
+constexpr float ZERO = 0.0;
+constexpr float ONE = 1.0;
+constexpr std:string_view PREC = "Single";
 #define BASE10DIG   FLT_DIG
 
-typedef float   REAL;
+using REAL = float;
 #endif
 
 #ifdef DP
-#define ZERO        0.0e0
-#define ONE         1.0e0
-#define PREC        "Double"
+constexpr double ZERO = 0.0;
+constexpr double ONE = 1.0;
+constexpr std::string_view PREC = "Double";
 #define BASE10DIG   DBL_DIG
 
-typedef double  REAL;
+using REAL = double;
 #endif
 
 static REAL linpack  (long nreps,int arsize);
@@ -48,76 +50,84 @@ static REAL second   (void);
 
 static void *mempool;
 
-
-void main(void)
-
-    {
-    char    buf[80];
-    int     arsize;
-    long    arsize2d,memreq,nreps;
+int main (void){
+    
+    char buf[80];
+    int arsize;
+    long arsize2d,memreq,nreps;
     size_t  malloc_arg;
 
-    while (1)
-        {
-        printf("Enter array size (q to quit) [200]:  ");
-        fgets(buf,79,stdin);
-        if (buf[0]=='q' || buf[0]=='Q')
-            break;
-        if (buf[0]=='\0' || buf[0]=='\n')
-            arsize=200;
-        else
-            arsize=atoi(buf);
+    while(1){
+        std::cout << "Enter array size (q to quit) [200]:  ";
+        std::cin >> buf;
+
+        if (buf[0]=='q' || buf[0]=='Q') break;
+        if (buf[0]=='\0' || buf[0]=='\n') arsize=200;
+        else arsize=atoi(buf);
+
         arsize/=2;
         arsize*=2;
         if (arsize<10)
             {
-            printf("Too small.\n");
+            std::cout << "Too small.\n";
             continue;
             }
+
         arsize2d = (long)arsize*(long)arsize;
         memreq=arsize2d*sizeof(REAL)+(long)arsize*sizeof(REAL)+(long)arsize*sizeof(int);
         printf("Memory required:  %ldK.\n",(memreq+512L)>>10);
         malloc_arg=(size_t)memreq;
         if (malloc_arg!=memreq || (mempool=malloc(malloc_arg))==NULL)
             {
-            printf("Not enough memory available for given array size.\n\n");
+            std::cout << "Not enough memory available for given array size.\n\n";
             continue;
             }
-        printf("\n\nLINPACK benchmark, %s precision.\n",PREC);
-        printf("Machine precision:  %d digits.\n",BASE10DIG);
-        printf("Array size %d X %d.\n",arsize,arsize);
-        printf("Average rolled and unrolled performance:\n\n");
-        printf("    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n");
-        printf("----------------------------------------------------\n");
-        nreps=1;
+
+        std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
+        std::cout << "Machine precision: " << BASE10DIG << " digits. \n";
+        std::cout << "Array size " << arsize << " X " << arsize << ". \n";
+        std::cout << "Average rolled and unrolled performance:\n\n";
+        std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
+        std::cout << "----------------------------------------------------\n";
+
+        nreps = 1;
         while (linpack(nreps,arsize)<10.)
-            nreps*=2;
+            nreps *= 2;
+        
         free(mempool);
-        printf("\n");
-        }
+        std::cout << '\n';
     }
+    
+}
 
 
-static REAL linpack(long nreps,int arsize)
+/* 
+FUNCTIONALLITY: 
+    Measure execution times.
 
-    {
+INPUT VARIABLES:
+    nreps     number of times to repeat the computations
+    job       0 to solve a*x = b 
+              1 to solve trans(a)*x = b
+*/
+
+static REAL linpack (long nreps, int arsize){
+
     REAL  *a,*b;
-    REAL   norma,t1,kflops,tdgesl,tdgefa,totalt,toverhead,ops;
-    int   *ipvt,n,info,lda;
-    long   i,arsize2d;
+    REAL  t1, norma, kflops, toverhead, ops, tdgefa = 0.0, tdgesl = 0.0, totalt = 0.0;
+    int   *ipvt, n, lda, info = 0;
+    long   arsize2d;
 
     lda = arsize;
     n = arsize/2;
     arsize2d = (long)arsize*(long)arsize;
-    ops=((2.0*n*n*n)/3.0+2.0*n*n);
+    ops = ((2.0*n*n*n)/3.0+2.0*n*n);
     a=(REAL *)mempool;
     b=a+arsize2d;
     ipvt=(int *)&b[arsize];
-    tdgesl=0;
-    tdgefa=0;
+
     totalt=second();
-    for (i=0;i<nreps;i++)
-        {
+    for (int i = 0; i < nreps; ++i){
         matgen(a,lda,n,b,&norma);
         t1 = second();
         dgefa(a,lda,n,ipvt,&info,1);
@@ -125,9 +135,9 @@ static REAL linpack(long nreps,int arsize)
         t1 = second();
         dgesl(a,lda,n,ipvt,b,0,1);
         tdgesl += second()-t1;
-        }
-    for (i=0;i<nreps;i++)
-        {
+    }
+
+    for (int i = 0; i < nreps; ++i){
         matgen(a,lda,n,b,&norma);
         t1 = second();
         dgefa(a,lda,n,ipvt,&info,0);
@@ -135,24 +145,24 @@ static REAL linpack(long nreps,int arsize)
         t1 = second();
         dgesl(a,lda,n,ipvt,b,0,0);
         tdgesl += second()-t1;
-        }
-    totalt=second()-totalt;
-    if (totalt<0.5 || tdgefa+tdgesl<0.2)
-        return(0.);
-    kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
-    toverhead=totalt-tdgefa-tdgesl;
-    if (tdgefa<0.)
-        tdgefa=0.;
-    if (tdgesl<0.)
-        tdgesl=0.;
-    if (toverhead<0.)
-        toverhead=0.;
-    printf("%8ld %6.2f %6.2f%% %6.2f%% %6.2f%%  %9.3f\n",
-            nreps,totalt,100.*tdgefa/totalt,
-            100.*tdgesl/totalt,100.*toverhead/totalt,
-            kflops);
-    return(totalt);
     }
+
+    totalt=second()-totalt;
+
+    if (totalt<0.5 || tdgefa+tdgesl<0.2) return (0.);
+    kflops = 2.* nreps*ops/(1000. * (tdgefa+tdgesl));
+    toverhead = totalt-tdgefa-tdgesl;
+    if (tdgefa<0.) tdgefa=0.;
+    if (tdgesl<0.) tdgesl=0.;
+    if (toverhead<0.) toverhead=0.;
+
+    std::cout << std::fixed;
+    std::cout << std::setprecision(2);
+    std::cout << nreps << " " << totalt << " " << 100.*tdgefa/totalt << "% "         \
+    << 100.*tdgesl/totalt << "% " << 100.*toverhead/totalt << "% " << kflops << '\n';
+    
+    return totalt;
+}
 
 
 /*
@@ -237,7 +247,7 @@ static void dgefa(REAL *a,int lda,int n,int *ipvt,int *info,int roll)
 
     {
     REAL t;
-    int idamax(),j,k,kp1,l,nm1;
+    int j,k,kp1,l,nm1;
 
     /* gaussian elimination with partial pivoting */
 
@@ -828,14 +838,14 @@ static int idamax(int n,REAL *dx,int incx)
         /* code for increment not equal to 1 */
 
         ix = 1;
-        dmax = fabs((double)dx[0]);
+        dmax = std::fabs((double)dx[0]);
         ix = ix + incx;
         for (i = 1; i < n; i++)
             {
-            if(fabs((double)dx[ix]) > dmax)
+            if(std::fabs((double)dx[ix]) > dmax)
                 {
                 itemp = i;
-                dmax = fabs((double)dx[ix]);
+                dmax = std::fabs((double)dx[ix]);
                 }
             ix = ix + incx;
             }
@@ -846,12 +856,12 @@ static int idamax(int n,REAL *dx,int incx)
         /* code for increment equal to 1 */
 
         itemp = 0;
-        dmax = fabs((double)dx[0]);
+        dmax = std::fabs((double)dx[0]);
         for (i = 1; i < n; i++)
-            if(fabs((double)dx[i]) > dmax)
+            if(std::fabs((double)dx[i]) > dmax)
                 {
                 itemp = i;
-                dmax = fabs((double)dx[i]);
+                dmax = std::fabs((double)dx[i]);
                 }
         }
     return (itemp);
@@ -863,4 +873,3 @@ static REAL second(void)
     {
     return ((REAL)((REAL)clock()/(REAL)CLOCKS_PER_SEC));
     }
-
