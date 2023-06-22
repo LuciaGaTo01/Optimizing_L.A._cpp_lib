@@ -1,24 +1,8 @@
 
 /*
 **
-** LINPACK.C        Linpack benchmark, calculates FLOPS.
+** LINPACK.CPP      Linpack benchmark, calculates FLOPS.
 **                  (FLoating Point Operations Per Second)
-**
-** Translated to C by Bonnie Toy 5/88
-**
-** Modified by Will Menninger, 10/93, with these features:
-**  (modified on 2/25/94  to fix a problem with daxpy  for
-**   unequal increments or equal increments not equal to 1.
-**     Jack Dongarra)
-**
-** - Defaults to double precision.
-** - Averages ROLLed and UNROLLed performance.
-** - User selectable array sizes.
-** - Automatically does enough repetitions to take at least 10 CPU seconds.
-** - Prints machine precision.
-** - ANSI prototyping.
-**
-** To compile:  cc -O -o linpack linpack.c -lm
 **
 **
 */
@@ -26,17 +10,14 @@
 
 
 #include <iostream>
-#include <chrono>
 #include <cfloat>
-#include "matrix"
-
-using namespace std::chrono_literals;
+#include <iomanip>
 
 #define DP
 
 #ifdef SP
-#define ZERO        0.0
-#define ONE         1.0
+constexpr float ZERO = 0.0;
+constexpr float ONE = 1.0;
 #define PREC        "Single"
 #define BASE10DIG   FLT_DIG
 
@@ -44,8 +25,8 @@ typedef float   REAL;
 #endif
 
 #ifdef DP
-#define ZERO        0.0e0
-#define ONE         1.0e0
+constexpr double ZERO = 0.0;
+constexpr double ONE = 1.0;
 #define PREC        "Double"
 #define BASE10DIG   DBL_DIG
 
@@ -63,6 +44,7 @@ static void daxpy_ur (int n,REAL da,REAL *dx,int incx,REAL *dy,int incy);
 static REAL ddot_ur  (int n,REAL *dx,int incx,REAL *dy,int incy);
 static void dscal_ur (int n,REAL da,REAL *dx,int incx);
 static int  idamax   (int n,REAL *dx,int incx);
+static REAL second   (void);
 
 static void *mempool;
 
@@ -79,19 +61,19 @@ int main (void){
 
         if (buf[0]=='q' || buf[0]=='Q') break;
         if (buf[0]=='\0' || buf[0]=='\n') arsize=200;
-        else arsize=std::stoi(buf);
+        else arsize=atoi(buf);
 
         arsize/=2;
         arsize*=2;
         if (arsize<10)
             {
-            printf("Too small.\n");
+            std::cout << "Too small.\n";
             continue;
             }
 
         arsize2d = (long)arsize*(long)arsize;
         memreq=arsize2d*sizeof(REAL)+(long)arsize*sizeof(REAL)+(long)arsize*sizeof(int);
-        std::cout << "Memory required:   " << (memreq+512L) << "K.\n";
+        printf("Memory required:  %ldK.\n",(memreq+512L)>>10);
         malloc_arg=(size_t)memreq;
         if (malloc_arg!=memreq || (mempool=malloc(malloc_arg))==NULL)
             {
@@ -107,7 +89,7 @@ int main (void){
         std::cout << "----------------------------------------------------\n";
 
         nreps = 1;
-        while (linpack(nreps,0)<10.)
+        while (linpack(nreps,arsize)<10.)
             nreps *= 2;
         
         free(mempool);
@@ -130,7 +112,7 @@ INPUT VARIABLES:
 static REAL linpack (long nreps, int arsize){
 
     REAL  *a,*b;
-    REAL  norma, kflops, toverhead, ops, tdgefa = 0.0, tdgesl = 0.0, totalt = 0.0;
+    REAL  t1, norma, kflops, toverhead, ops, tdgefa = 0.0, tdgesl = 0.0, totalt = 0.0;
     int   *ipvt, n, lda, info = 0;
     long   arsize2d;
 
@@ -142,45 +124,40 @@ static REAL linpack (long nreps, int arsize){
     b=a+arsize2d;
     ipvt=(int *)&b[arsize];
 
-    using clk = std::chrono::high_resolution_clock;
-    using secs = std::chrono::seconds;
-    auto t0 = clk::now();
+    totalt=second();
     for (int i = 0; i < nreps; ++i){
         matgen(a,lda,n,b,&norma);
-        auto t1 = clk::now();
+        t1 = second();
         dgefa(a,lda,n,ipvt,&info,1);
-        auto t2 = clk::now();
-        tdgefa += (t2-t1)/1.s;
-        auto t3 = clk::now();
+        tdgefa += second()-t1;
+        t1 = second();
         dgesl(a,lda,n,ipvt,b,0,1);
-        auto t4 = clk::now();
-        tdgesl += (t4-t3)/1.s;
+        tdgesl += second()-t1;
     }
 
     for (int i = 0; i < nreps; ++i){
         matgen(a,lda,n,b,&norma);
-        auto t1 = clk::now();
+        t1 = second();
         dgefa(a,lda,n,ipvt,&info,0);
-        auto t2 = clk::now();
-        tdgefa += (t2-t1)/1.s;
-        auto t3 = clk::now();
+        tdgefa += second()-t1;
+        t1 = second();
         dgesl(a,lda,n,ipvt,b,0,0);
-        auto t4 = clk::now();
-        tdgesl += (t4-t3)/1.s;
+        tdgesl += second()-t1;
     }
 
-    auto t5 = clk::now();
-    totalt += (t5-t0)/1.s;
+    totalt=second()-totalt;
 
     if (totalt<0.5 || tdgefa+tdgesl<0.2) return (0.);
     kflops = 2.* nreps*ops/(1000. * (tdgefa+tdgesl));
-    toverhead = totalt-tdgesl;
+    toverhead = totalt-tdgefa-tdgesl;
     if (tdgefa<0.) tdgefa=0.;
     if (tdgesl<0.) tdgesl=0.;
     if (toverhead<0.) toverhead=0.;
 
-    std::cout << nreps << " " << totalt << " " << 100.*tdgefa/totalt << " "         \
-    << 100.*tdgesl/totalt << " " << 100.*toverhead/totalt << " " << kflops << '\n';
+    std::cout << std::fixed;
+    std::cout << std::setprecision(2);
+    std::cout << nreps << " " << totalt << " " << 100.*tdgefa/totalt << "% "         \
+    << 100.*tdgesl/totalt << "% " << 100.*toverhead/totalt << "% " << kflops << '\n';
     
     return totalt;
 }
@@ -886,4 +863,11 @@ static int idamax(int n,REAL *dx,int incx)
                 }
         }
     return (itemp);
+    }
+
+
+static REAL second(void)
+
+    {
+    return ((REAL)((REAL)clock()/(REAL)CLOCKS_PER_SEC));
     }
