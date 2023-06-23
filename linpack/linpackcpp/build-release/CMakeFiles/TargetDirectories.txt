@@ -1,3 +1,0 @@
-/home/lucia/Escritorio/TFG/cloned_repos/Optimizing_L.A._cpp_lib/linpack/linpackcpp/build-release/CMakeFiles/linalg.dir
-/home/lucia/Escritorio/TFG/cloned_repos/Optimizing_L.A._cpp_lib/linpack/linpackcpp/build-release/CMakeFiles/edit_cache.dir
-/home/lucia/Escritorio/TFG/cloned_repos/Optimizing_L.A._cpp_lib/linpack/linpackcpp/build-release/CMakeFiles/rebuild_cache.dir

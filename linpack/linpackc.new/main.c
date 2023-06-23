@@ -28,6 +28,10 @@
 #include <time.h>
 #include <float.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #define DP
 
 #ifdef SP
@@ -49,6 +53,7 @@ typedef double  REAL;
 #endif
 
 static REAL linpack  (long nreps,int arsize);
+static void writeFile (REAL *a, REAL *b, int nrows, int ncols);
 static void matgen   (REAL *a,int lda,int n,REAL *b,REAL *norma);
 static void dgefa    (REAL *a,int lda,int n,int *ipvt,int *info,int roll);
 static void dgesl    (REAL *a,int lda,int n,int *ipvt,REAL *b,int job,int roll);
@@ -151,7 +156,10 @@ static REAL linpack(long nreps,int arsize)
         dgesl(a,lda,n,ipvt,b,0,0);
         tdgesl += second()-t1;
         }
+        
     totalt=second()-totalt;
+
+    writeFile (a, b, lda, lda);
     if (totalt<0.5 || tdgefa+tdgesl<0.2)
         return(0.);
     kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
@@ -169,6 +177,52 @@ static REAL linpack(long nreps,int arsize)
     return(totalt);
     }
 
+
+static void writeFile (REAL *a, REAL *b, int nrows, int ncols){
+    FILE *fptra, *fptrb;
+    char fileNameA[100], fileNameb[100];
+    struct stat st;
+
+    if (stat("./outputFiles", &st) == -1) {
+        mkdir("./outputFiles", 0700);
+    }   
+    
+    sprintf(fileNameA, "./outputFiles/output_a-%d.txt", nrows);
+    sprintf(fileNameb, "./outputFiles/output_b-%d.txt", nrows);
+    if ((fptra = fopen(fileNameA,"w")) == NULL || (fptrb = fopen(fileNameb,"w")) == NULL){
+       printf("Error! opening file");
+
+       // Program exits if the file pointer returns NULL.
+       exit(1);
+    }
+
+    for (int i = 0; i < nrows; ++i){
+        for (int j = 0; j < ncols; ++j){
+            fprintf(fptra, "%.6f\t", a[ncols*i+j]);
+        }
+        fprintf(fptra, "\n");
+        fprintf(fptrb, "%.6f\n", b[i]);
+    }
+
+    fclose(fptra);
+    fclose(fptrb);
+
+    snprintf(fileNameA, sizeof(fileNameA), "./outputFiles/output_a-%d.data", nrows);
+    snprintf(fileNameb, sizeof(fileNameb), "./outputFiles/output_b-%d.data", nrows);
+    if ((fptra = fopen(fileNameA,"wb")) == NULL || (fptrb = fopen(fileNameb,"wb")) == NULL){
+        printf("Error! opening binary file");
+
+        // Program exits if the file pointer returns NULL.
+        exit(1);
+    }
+
+    fwrite(a, sizeof(a[0]), nrows*ncols, fptra);
+    fwrite(b, sizeof(b[0]), nrows, fptrb);
+
+    fclose(fptra);
+    fclose(fptrb);
+
+}
 
 /*
 ** For matgen,
