@@ -1,4 +1,4 @@
-# FOLDER DECRIPTION
+# FOLDER DESCRIPTION
 
 In this folder, you can find different versions of the LINPACK benchmark. The programming languages used are C and C++.
 
