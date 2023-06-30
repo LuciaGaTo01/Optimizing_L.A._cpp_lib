@@ -15,6 +15,7 @@
 #include <string_view>
 #include <limits>
 #include <iomanip>
+#include <sys/stat.h>
 
 #define DP
 
@@ -755,6 +756,54 @@ void matgen(T *a,int lda,int n,T *b,T *norma)
 
 
 template <typename T>
+static void writeFile (T *a, T *b, int nrows, int ncols){
+    FILE *fptra, *fptrb;
+    char fileNameA[100], fileNameb[100];
+    struct stat st;
+
+    if (stat("./outputFiles", &st) == -1) {
+        mkdir("./outputFiles", 0700);
+    }   
+    
+    sprintf(fileNameA, "./outputFiles/output_a-%d.txt", nrows);
+    sprintf(fileNameb, "./outputFiles/output_b-%d.txt", nrows);
+    if ((fptra = fopen(fileNameA,"w")) == NULL || (fptrb = fopen(fileNameb,"w")) == NULL){
+       printf("Error! opening file");
+
+       // Program exits if the file pointer returns NULL.
+       exit(1);
+    }
+
+    for (int i = 0; i < nrows; ++i){
+        for (int j = 0; j < ncols; ++j){
+            fprintf(fptra, "%.6f\t", a[ncols*i+j]);
+        }
+        fprintf(fptra, "\n");
+        fprintf(fptrb, "%.6f\n", b[i]);
+    }
+
+    fclose(fptra);
+    fclose(fptrb);
+
+    snprintf(fileNameA, sizeof(fileNameA), "./outputFiles/output_a-%d.data", nrows);
+    snprintf(fileNameb, sizeof(fileNameb), "./outputFiles/output_b-%d.data", nrows);
+    if ((fptra = fopen(fileNameA,"wb")) == NULL || (fptrb = fopen(fileNameb,"wb")) == NULL){
+        printf("Error! opening binary file");
+
+        // Program exits if the file pointer returns NULL.
+        exit(1);
+    }
+
+    fwrite(a, sizeof(a[0]), nrows*ncols, fptra);
+    fwrite(b, sizeof(b[0]), nrows, fptrb);
+
+    fclose(fptra);
+    fclose(fptrb);
+
+}
+
+
+template <typename T>
 T second(void)
 
     {
@@ -804,6 +853,7 @@ T linpack (long nreps, int arsize)
 
     totalt=second<T>()-totalt;
 
+    writeFile(a, b, lda, lda);
     if (totalt<0.5 || tdgefa+tdgesl<0.2) return(0.);
     kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
     toverhead=totalt-tdgefa-tdgesl;
