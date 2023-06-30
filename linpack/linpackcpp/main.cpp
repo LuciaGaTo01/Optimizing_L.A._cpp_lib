@@ -413,10 +413,11 @@ int idamax(int n,T *dx,int incx)
 **   blas daxpy,dscal,idamax
 **
 */
-void dgefa(REAL *a,int lda,int n,int *ipvt,int *info,int roll)
+template <typename T>
+void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
     {
-    REAL t;
+    T t;
     int j,k,kp1,l,nm1;
 
     /* gaussian elimination with partial pivoting */
@@ -593,10 +594,11 @@ void dgefa(REAL *a,int lda,int n,int *ipvt,int *info,int roll)
 **
 **   blas daxpy,ddot
 */
-void dgesl(REAL *a,int lda,int n,int *ipvt,REAL *b,int job,int roll)
+template <typename T>
+void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
 
     {
-    REAL    t;
+    T    t;
     int     k,kb,l,nm1;
 
     if (roll)
