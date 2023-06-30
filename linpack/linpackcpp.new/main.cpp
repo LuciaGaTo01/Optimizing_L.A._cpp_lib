@@ -11,7 +11,7 @@
 
 #include <iostream>
 #include <cfloat>
-#include <iomanip>
+#include <cmath>
 
 #define DP
 
@@ -49,7 +49,7 @@ static REAL second   (void);
 static void *mempool;
 
 
-void main(void)
+int main()
 
     {
     char    buf[80];
@@ -237,7 +237,7 @@ static void dgefa(REAL *a,int lda,int n,int *ipvt,int *info,int roll)
 
     {
     REAL t;
-    int idamax(),j,k,kp1,l,nm1;
+    int j,k,kp1,l,nm1;
 
     /* gaussian elimination with partial pivoting */
 
