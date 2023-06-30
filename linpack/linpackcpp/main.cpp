@@ -46,7 +46,8 @@ static void *mempool;
 ** Jack Dongarra, linpack, 3/11/78.
 ** ROLLED version
 */
-void daxpy_r(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
+template <typename T>
+void daxpy_r(int n,T da,T *dx,int incx,T *dy,int incy)
 
     {
     int i,ix,iy;
@@ -81,15 +82,17 @@ void daxpy_r(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
     }
 
 
+
 /*
 ** Forms the dot product of two vectors.
 ** Jack Dongarra, linpack, 3/11/78.
 ** ROLLED version
 */
-REAL ddot_r(int n,REAL *dx,int incx,REAL *dy,int incy)
+template <typename T>
+T ddot_r(int n,T *dx,int incx,T *dy,int incy)
 
     {
-    REAL dtemp;
+    T dtemp;
     int i,ix,iy;
 
     dtemp = ZERO;
@@ -128,7 +131,8 @@ REAL ddot_r(int n,REAL *dx,int incx,REAL *dy,int incy)
 ** Jack Dongarra, linpack, 3/11/78.
 ** ROLLED version
 */
-void dscal_r(int n,REAL da,REAL *dx,int incx)
+template <typename T>
+void dscal_r(int n,T da,T *dx,int incx)
 
     {
     int i,nincx;
@@ -158,7 +162,8 @@ void dscal_r(int n,REAL da,REAL *dx,int incx)
 ** Jack Dongarra, linpack, 3/11/78.
 ** UNROLLED version
 */
-void daxpy_ur(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
+template <typename T>
+void daxpy_ur(int n,T da,T *dx,int incx,T *dy,int incy)
 
     {
     int i,ix,iy,m;
@@ -211,10 +216,11 @@ void daxpy_ur(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
 ** Jack Dongarra, linpack, 3/11/78.
 ** UNROLLED version
 */
-REAL ddot_ur(int n,REAL *dx,int incx,REAL *dy,int incy)
+template <typename T>
+T ddot_ur(int n,T *dx,int incx,T *dy,int incy)
 
     {
-    REAL dtemp;
+    T dtemp;
     int i,ix,iy,m;
 
     dtemp = ZERO;
@@ -265,7 +271,8 @@ REAL ddot_ur(int n,REAL *dx,int incx,REAL *dy,int incy)
 ** Jack Dongarra, linpack, 3/11/78.
 ** UNROLLED version
 */
-void dscal_ur(int n,REAL da,REAL *dx,int incx)
+template <typename T>
+void dscal_ur(int n,T da,T *dx,int incx)
 
     {
     int i,m,nincx;
@@ -308,10 +315,11 @@ void dscal_ur(int n,REAL da,REAL *dx,int incx)
 ** Finds the index of element having max. absolute value.
 ** Jack Dongarra, linpack, 3/11/78.
 */
-int idamax(int n,REAL *dx,int incx)
+template <typename T>
+int idamax(int n,T *dx,int incx)
 
     {
-    REAL dmax;
+    T dmax;
     int i, ix, itemp;
 
     if (n < 1)
@@ -721,7 +729,8 @@ void dgesl(REAL *a,int lda,int n,int *ipvt,REAL *b,int job,int roll)
 ** We would like to declare a[][lda], but c does not allow it.  In this
 ** function, references to a[i][j] are written a[lda*i+j].
 */
-void matgen(REAL *a,int lda,int n,REAL *b,REAL *norma)
+template <typename T>
+void matgen(T *a,int lda,int n,T *b,T *norma)
 
     {
     int init,i,j;
@@ -743,18 +752,19 @@ void matgen(REAL *a,int lda,int n,REAL *b,REAL *norma)
     }
 
 
-REAL second(void)
+template <typename T>
+T second(void)
 
     {
-    return ((REAL)((REAL)clock()/(REAL)CLOCKS_PER_SEC));
+    return ((T)((T)clock()/(T)CLOCKS_PER_SEC));
     }
 
-
-REAL linpack(long nreps,int arsize)
+template <typename T>
+T linpack (long nreps, int arsize)
 
     {
-    REAL  *a,*b;
-    REAL   norma,t1,kflops,tdgesl,tdgefa,totalt,toverhead,ops;
+    T  *a,*b;
+    T   norma,t1,kflops,tdgesl,tdgefa,totalt,toverhead,ops;
     int   *ipvt,n,info,lda;
     long   i,arsize2d;
 
@@ -762,34 +772,35 @@ REAL linpack(long nreps,int arsize)
     n = arsize/2;
     arsize2d = (long)arsize*(long)arsize;
     ops=((2.0*n*n*n)/3.0+2.0*n*n);
-    a=(REAL *)mempool;
+    a=(T *)mempool;
     b=a+arsize2d;
     ipvt=(int *)&b[arsize];
 
     tdgesl=0;
     tdgefa=0;
-    totalt=second();
+    totalt=second<T>();
     for (i=0;i<nreps;i++)
         {
         matgen(a,lda,n,b,&norma);
-        t1 = second();
+        t1 = second<T>();
         dgefa(a,lda,n,ipvt,&info,1);
-        tdgefa += second()-t1;
-        t1 = second();
+        tdgefa += second<T>()-t1;
+        t1 = second<T>();
         dgesl(a,lda,n,ipvt,b,0,1);
-        tdgesl += second()-t1;
+        tdgesl += second<T>()-t1;
         }
     for (i=0;i<nreps;i++)
         {
         matgen(a,lda,n,b,&norma);
-        t1 = second();
+        t1 = second<T>();
         dgefa(a,lda,n,ipvt,&info,0);
-        tdgefa += second()-t1;
-        t1 = second();
+        tdgefa += second<T>()-t1;
+        t1 = second<T>();
         dgesl(a,lda,n,ipvt,b,0,0);
-        tdgesl += second()-t1;
+        tdgesl += second<T>()-t1;
         }
-    totalt=second()-totalt;
+
+    totalt=second<T>()-totalt;
 
     if (totalt<0.5 || tdgefa+tdgesl<0.2) return(0.);
     kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
@@ -849,7 +860,7 @@ int main()
         std::cout << "----------------------------------------------------\n";
 
         nreps=1;
-        while (linpack(nreps,arsize)<10.)
+        while (linpack<REAL>(nreps,arsize)<10.)
             nreps*=2;
 
         free(mempool);
