@@ -17,29 +17,16 @@
 #include <iomanip>
 #include <sys/stat.h>
 
-#define DP
 
-#ifdef SP
-constexpr float ZERO = 0.0;
-constexpr float ONE = 1.0;
-constexpr std:string_view PREC = "Single";
-constexpr int BASE10DIG = std::numeric_limits<float>::digits10;
-
-using REAL = float;
-#endif
-
-#ifdef DP
-constexpr double ZERO = 0.0;
-constexpr double ONE = 1.0;
-constexpr std::string_view PREC = "Double";
-constexpr int BASE10DIG = std::numeric_limits<double>::digits10;
-
-using REAL = double;
-#endif
+template <typename T>
+constexpr T ZERO = 0.0;
+template <typename T>
+constexpr T ONE = 1.0;
+template <typename T>
+constexpr int BASE10DIG = std::numeric_limits<T>::digits10;
 
 
 static void *mempool;
-
 
 
 /*
@@ -55,7 +42,7 @@ void daxpy_r(int n,T da,T *dx,int incx,T *dy,int incy)
 
     if (n <= 0)
         return;
-    if (da == ZERO)
+    if (da == ZERO<T>)
         return;
 
     if (incx != 1 || incy != 1)
@@ -96,10 +83,10 @@ T ddot_r(int n,T *dx,int incx,T *dy,int incy)
     T dtemp;
     int i,ix,iy;
 
-    dtemp = ZERO;
+    dtemp = ZERO<T>;
 
     if (n <= 0)
-        return(ZERO);
+        return(ZERO<T>);
 
     if (incx != 1 || incy != 1)
         {
@@ -171,7 +158,7 @@ void daxpy_ur(int n,T da,T *dx,int incx,T *dy,int incy)
 
     if (n <= 0)
         return;
-    if (da == ZERO)
+    if (da == ZERO<T>)
         return;
 
     if (incx != 1 || incy != 1)
@@ -224,10 +211,10 @@ T ddot_ur(int n,T *dx,int incx,T *dy,int incy)
     T dtemp;
     int i,ix,iy,m;
 
-    dtemp = ZERO;
+    dtemp = ZERO<T>;
 
     if (n <= 0)
-        return(ZERO);
+        return(ZERO<T>);
 
     if (incx != 1 || incy != 1)
         {
@@ -440,7 +427,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                 /* zero pivot implies this column already
                    triangularized */
 
-                if (a[lda*k+l] != ZERO)
+                if (a[lda*k+l] != ZERO<T>)
                     {
 
                     /* interchange if necessary */
@@ -454,7 +441,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
                     /* compute multipliers */
 
-                    t = -ONE/a[lda*k+k];
+                    t = -ONE<T>/a[lda*k+k];
                     dscal_r(n-(k+1),t,&a[lda*k+k+1],1);
 
                     /* row elimination with column indexing */
@@ -474,7 +461,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                     (*info) = k;
                 }
         ipvt[n-1] = n-1;
-        if (a[lda*(n-1)+(n-1)] == ZERO)
+        if (a[lda*(n-1)+(n-1)] == ZERO<T>)
             (*info) = n-1;
         }
     else
@@ -494,7 +481,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                 /* zero pivot implies this column already
                    triangularized */
 
-                if (a[lda*k+l] != ZERO)
+                if (a[lda*k+l] != ZERO<T>)
                     {
 
                     /* interchange if necessary */
@@ -508,7 +495,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
                     /* compute multipliers */
 
-                    t = -ONE/a[lda*k+k];
+                    t = -ONE<T>/a[lda*k+k];
                     dscal_ur(n-(k+1),t,&a[lda*k+k+1],1);
 
                     /* row elimination with column indexing */
@@ -528,7 +515,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                     (*info) = k;
                 }
         ipvt[n-1] = n-1;
-        if (a[lda*(n-1)+(n-1)] == ZERO)
+        if (a[lda*(n-1)+(n-1)] == ZERO<T>)
             (*info) = n-1;
         }
     }
@@ -870,20 +857,50 @@ T linpack (long nreps, int arsize)
     }
 
 
-int main()
+template <typename T>
+void callLinpack (int arsize, const char *PREC){
 
-    {
-    char    buf[80];
-    int     arsize;
-    long    arsize2d,memreq,nreps;
+    long arsize2d,memreq,nreps;
     size_t  malloc_arg;
 
-    while (1)
+    arsize2d = (long)arsize*(long)arsize;
+    memreq=arsize2d*sizeof(T)+(long)arsize*sizeof(T)+(long)arsize*sizeof(int);
+    printf("Memory required:  %ldK.\n",(memreq+512L)>>10);
+    malloc_arg=(size_t)memreq;
+    if (malloc_arg!=memreq || (mempool=malloc(malloc_arg))==NULL)
         {
-        std::cout << "Enter array size (q to quit) [200]:  ";
+        std::cout << "Not enough memory available for given array size.\n\n";
+        }
+    else
+        {
+        std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
+        std::cout << "Machine precision: " << BASE10DIG<T> << " digits. \n";
+        std::cout << "Array size " << arsize << " X " << arsize << ". \n";
+        std::cout << "Average rolled and unrolled performance:\n\n";
+        std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
+        std::cout << "----------------------------------------------------\n";
+
+        nreps = 1;
+        while (linpack<T>(nreps,arsize)<10.)
+            nreps *= 2;
+        }
+}
+
+
+int main (){
+    char buf[80], precission[10];
+    int arsize;
+    const char *PREC;
+
+    while(1){
+        std::cout << "Introduce the precission required: \n s - single precission \n d - double precission \n q - Quit \n";
+        std::cin >> precission;
+
+        if (precission[0]=='q' || precission[0]=='Q') break;
+
+        std::cout << "Enter array size [200]:  ";
         std::cin >> buf;
 
-        if (buf[0]=='q' || buf[0]=='Q') break;
         if (buf[0]=='\0' || buf[0]=='\n') arsize=200;
         else arsize=atoi(buf);
 
@@ -894,28 +911,17 @@ int main()
             std::cout << "Too small.\n";
             continue;
             }
-        arsize2d = (long)arsize*(long)arsize;
-        memreq=arsize2d*sizeof(REAL)+(long)arsize*sizeof(REAL)+(long)arsize*sizeof(int);
-        printf("Memory required:  %ldK.\n",(memreq+512L)>>10);
-        malloc_arg=(size_t)memreq;
-        if (malloc_arg!=memreq || (mempool=malloc(malloc_arg))==NULL)
-            {
-            std::cout << "Not enough memory available for given array size.\n\n";
-            continue;
-            }
 
-        std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
-        std::cout << "Machine precision: " << BASE10DIG << " digits. \n";
-        std::cout << "Array size " << arsize << " X " << arsize << ". \n";
-        std::cout << "Average rolled and unrolled performance:\n\n";
-        std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
-        std::cout << "----------------------------------------------------\n";
-
-        nreps=1;
-        while (linpack<REAL>(nreps,arsize)<10.)
-            nreps*=2;
+        if (precission[0] == 's' || precission[0]=='S'){
+            PREC = "single";
+            callLinpack <float> (arsize, PREC);
+        } else {
+            PREC = "double";
+            callLinpack <double> (arsize, PREC);
+        }
 
         free(mempool);
         std::cout << '\n';
-        }
     }
+    
+}
