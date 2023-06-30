@@ -46,7 +46,7 @@ static void *mempool;
 ** Jack Dongarra, linpack, 3/11/78.
 ** ROLLED version
 */
-static void daxpy_r(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
+void daxpy_r(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
 
     {
     int i,ix,iy;
@@ -86,7 +86,7 @@ static void daxpy_r(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
 ** Jack Dongarra, linpack, 3/11/78.
 ** ROLLED version
 */
-static REAL ddot_r(int n,REAL *dx,int incx,REAL *dy,int incy)
+REAL ddot_r(int n,REAL *dx,int incx,REAL *dy,int incy)
 
     {
     REAL dtemp;
@@ -128,7 +128,7 @@ static REAL ddot_r(int n,REAL *dx,int incx,REAL *dy,int incy)
 ** Jack Dongarra, linpack, 3/11/78.
 ** ROLLED version
 */
-static void dscal_r(int n,REAL da,REAL *dx,int incx)
+void dscal_r(int n,REAL da,REAL *dx,int incx)
 
     {
     int i,nincx;
@@ -158,7 +158,7 @@ static void dscal_r(int n,REAL da,REAL *dx,int incx)
 ** Jack Dongarra, linpack, 3/11/78.
 ** UNROLLED version
 */
-static void daxpy_ur(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
+void daxpy_ur(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
 
     {
     int i,ix,iy,m;
@@ -211,7 +211,7 @@ static void daxpy_ur(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
 ** Jack Dongarra, linpack, 3/11/78.
 ** UNROLLED version
 */
-static REAL ddot_ur(int n,REAL *dx,int incx,REAL *dy,int incy)
+REAL ddot_ur(int n,REAL *dx,int incx,REAL *dy,int incy)
 
     {
     REAL dtemp;
@@ -265,7 +265,7 @@ static REAL ddot_ur(int n,REAL *dx,int incx,REAL *dy,int incy)
 ** Jack Dongarra, linpack, 3/11/78.
 ** UNROLLED version
 */
-static void dscal_ur(int n,REAL da,REAL *dx,int incx)
+void dscal_ur(int n,REAL da,REAL *dx,int incx)
 
     {
     int i,m,nincx;
@@ -308,7 +308,7 @@ static void dscal_ur(int n,REAL da,REAL *dx,int incx)
 ** Finds the index of element having max. absolute value.
 ** Jack Dongarra, linpack, 3/11/78.
 */
-static int idamax(int n,REAL *dx,int incx)
+int idamax(int n,REAL *dx,int incx)
 
     {
     REAL dmax;
@@ -405,7 +405,7 @@ static int idamax(int n,REAL *dx,int incx)
 **   blas daxpy,dscal,idamax
 **
 */
-static void dgefa(REAL *a,int lda,int n,int *ipvt,int *info,int roll)
+void dgefa(REAL *a,int lda,int n,int *ipvt,int *info,int roll)
 
     {
     REAL t;
@@ -585,7 +585,7 @@ static void dgefa(REAL *a,int lda,int n,int *ipvt,int *info,int roll)
 **
 **   blas daxpy,ddot
 */
-static void dgesl(REAL *a,int lda,int n,int *ipvt,REAL *b,int job,int roll)
+void dgesl(REAL *a,int lda,int n,int *ipvt,REAL *b,int job,int roll)
 
     {
     REAL    t;
@@ -721,7 +721,7 @@ static void dgesl(REAL *a,int lda,int n,int *ipvt,REAL *b,int job,int roll)
 ** We would like to declare a[][lda], but c does not allow it.  In this
 ** function, references to a[i][j] are written a[lda*i+j].
 */
-static void matgen(REAL *a,int lda,int n,REAL *b,REAL *norma)
+void matgen(REAL *a,int lda,int n,REAL *b,REAL *norma)
 
     {
     int init,i,j;
@@ -743,14 +743,14 @@ static void matgen(REAL *a,int lda,int n,REAL *b,REAL *norma)
     }
 
 
-static REAL second(void)
+REAL second(void)
 
     {
     return ((REAL)((REAL)clock()/(REAL)CLOCKS_PER_SEC));
     }
 
 
-static REAL linpack(long nreps,int arsize)
+REAL linpack(long nreps,int arsize)
 
     {
     REAL  *a,*b;
