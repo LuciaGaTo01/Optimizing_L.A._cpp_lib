@@ -11,352 +11,147 @@
 
 #include <iostream>
 #include <cfloat>
-#include <iomanip>
 #include <cmath>
-#include <string_view>
-#include <limits>
 
 #define DP
 
 #ifdef SP
-constexpr float ZERO = 0.0;
-constexpr float ONE = 1.0;
-constexpr std:string_view PREC = "Single";
-constexpr int BASE10DIG = std::numeric_limits<float>::digits10;
+#define ZERO        0.0
+#define ONE         1.0
+#define PREC        "Single"
+#define BASE10DIG   FLT_DIG
 
-using REAL = float;
+typedef float   REAL;
 #endif
 
 #ifdef DP
-constexpr double ZERO = 0.0;
-constexpr double ONE = 1.0;
-constexpr std::string_view PREC = "Double";
-constexpr int BASE10DIG = std::numeric_limits<double>::digits10;
+#define ZERO        0.0e0
+#define ONE         1.0e0
+#define PREC        "Double"
+#define BASE10DIG   DBL_DIG
 
-using REAL = double;
+typedef double  REAL;
 #endif
+
+static REAL linpack  (long nreps,int arsize);
+static void matgen   (REAL *a,int lda,int n,REAL *b,REAL *norma);
+static void dgefa    (REAL *a,int lda,int n,int *ipvt,int *info,int roll);
+static void dgesl    (REAL *a,int lda,int n,int *ipvt,REAL *b,int job,int roll);
+static void daxpy_r  (int n,REAL da,REAL *dx,int incx,REAL *dy,int incy);
+static REAL ddot_r   (int n,REAL *dx,int incx,REAL *dy,int incy);
+static void dscal_r  (int n,REAL da,REAL *dx,int incx);
+static void daxpy_ur (int n,REAL da,REAL *dx,int incx,REAL *dy,int incy);
+static REAL ddot_ur  (int n,REAL *dx,int incx,REAL *dy,int incy);
+static void dscal_ur (int n,REAL da,REAL *dx,int incx);
+static int  idamax   (int n,REAL *dx,int incx);
+static REAL second   (void);
 
 static void *mempool;
 
 
-/*
-** Constant times a vector plus a vector.
-** Jack Dongarra, linpack, 3/11/78.
-** ROLLED version
-*/
-template <typename T>
-void daxpy_r(int n,T da,T *dx,int incx,T *dy,int incy)
+int main()
 
     {
-    int i,ix,iy;
+    char    buf[80];
+    int     arsize;
+    long    arsize2d,memreq,nreps;
+    size_t  malloc_arg;
 
-    if (n <= 0)
-        return;
-    if (da == ZERO)
-        return;
-
-    if (incx != 1 || incy != 1)
+    while (1)
         {
-
-        /* code for unequal increments or equal increments != 1 */
-
-        ix = 1;
-        iy = 1;
-        if(incx < 0) ix = (-n+1)*incx + 1;
-        if(incy < 0)iy = (-n+1)*incy + 1;
-        for (i = 0;i < n; i++)
+        printf("Enter array size (q to quit) [200]:  ");
+        fgets(buf,79,stdin);
+        if (buf[0]=='q' || buf[0]=='Q')
+            break;
+        if (buf[0]=='\0' || buf[0]=='\n')
+            arsize=200;
+        else
+            arsize=atoi(buf);
+        arsize/=2;
+        arsize*=2;
+        if (arsize<10)
             {
-            dy[iy] = dy[iy] + da*dx[ix];
-            ix = ix + incx;
-            iy = iy + incy;
+            printf("Too small.\n");
+            continue;
             }
-        return;
-        }
-
-    /* code for both increments equal to 1 */
-
-    for (i = 0;i < n; i++)
-        dy[i] = dy[i] + da*dx[i];
-    }
-
-
-/*
-** Forms the dot product of two vectors.
-** Jack Dongarra, linpack, 3/11/78.
-** ROLLED version
-*/
-
-template <typename T>
-T ddot_r(int n,T *dx,int incx,T *dy,int incy)
-
-    {
-    T dtemp;
-    int i,ix,iy;
-
-    dtemp = ZERO;
-
-    if (n <= 0)
-        return(ZERO);
-
-    if (incx != 1 || incy != 1)
-        {
-
-        /* code for unequal increments or equal increments != 1 */
-
-        ix = 0;
-        iy = 0;
-        if (incx < 0) ix = (-n+1)*incx;
-        if (incy < 0) iy = (-n+1)*incy;
-        for (i = 0;i < n; i++)
+        arsize2d = (long)arsize*(long)arsize;
+        memreq=arsize2d*sizeof(REAL)+(long)arsize*sizeof(REAL)+(long)arsize*sizeof(int);
+        printf("Memory required:  %ldK.\n",(memreq+512L)>>10);
+        malloc_arg=(size_t)memreq;
+        if (malloc_arg!=memreq || (mempool=malloc(malloc_arg))==NULL)
             {
-            dtemp = dtemp + dx[ix]*dy[iy];
-            ix = ix + incx;
-            iy = iy + incy;
+            printf("Not enough memory available for given array size.\n\n");
+            continue;
             }
-        return(dtemp);
-        }
-
-    /* code for both increments equal to 1 */
-
-    for (i=0;i < n; i++)
-        dtemp = dtemp + dx[i]*dy[i];
-    return(dtemp);
-    }
-
-
-/*
-** Scales a vector by a constant.
-** Jack Dongarra, linpack, 3/11/78.
-** ROLLED version
-*/
-template <typename T>
-void dscal_r(int n,T da,T *dx,int incx)
-
-    {
-    int i,nincx;
-
-    if (n <= 0)
-        return;
-    if (incx != 1)
-        {
-
-        /* code for increment not equal to 1 */
-
-        nincx = n*incx;
-        for (i = 0; i < nincx; i = i + incx)
-            dx[i] = da*dx[i];
-        return;
-        }
-
-    /* code for increment equal to 1 */
-
-    for (i = 0; i < n; i++)
-        dx[i] = da*dx[i];
-    }
-
-
-/*
-** constant times a vector plus a vector.
-** Jack Dongarra, linpack, 3/11/78.
-** UNROLLED version
-*/
-template <typename T>
-void daxpy_ur(int n,T da,T *dx,int incx,T *dy,int incy)
-
-    {
-    int i,ix,iy,m;
-
-    if (n <= 0)
-        return;
-    if (da == ZERO)
-        return;
-
-    if (incx != 1 || incy != 1)
-        {
-
-        /* code for unequal increments or equal increments != 1 */
-
-        ix = 1;
-        iy = 1;
-        if(incx < 0) ix = (-n+1)*incx + 1;
-        if(incy < 0)iy = (-n+1)*incy + 1;
-        for (i = 0;i < n; i++)
-            {
-            dy[iy] = dy[iy] + da*dx[ix];
-            ix = ix + incx;
-            iy = iy + incy;
-            }
-        return;
-        }
-
-    /* code for both increments equal to 1 */
-
-    m = n % 4;
-    if ( m != 0)
-        {
-        for (i = 0; i < m; i++)
-            dy[i] = dy[i] + da*dx[i];
-        if (n < 4)
-            return;
-        }
-    for (i = m; i < n; i = i + 4)
-        {
-        dy[i] = dy[i] + da*dx[i];
-        dy[i+1] = dy[i+1] + da*dx[i+1];
-        dy[i+2] = dy[i+2] + da*dx[i+2];
-        dy[i+3] = dy[i+3] + da*dx[i+3];
+        printf("\n\nLINPACK benchmark, %s precision.\n",PREC);
+        printf("Machine precision:  %d digits.\n",BASE10DIG);
+        printf("Array size %d X %d.\n",arsize,arsize);
+        printf("Average rolled and unrolled performance:\n\n");
+        printf("    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n");
+        printf("----------------------------------------------------\n");
+        nreps=1;
+        while (linpack(nreps,arsize)<10.)
+            nreps*=2;
+        free(mempool);
+        printf("\n");
         }
     }
 
 
-/*
-** Forms the dot product of two vectors.
-** Jack Dongarra, linpack, 3/11/78.
-** UNROLLED version
-*/
-template <typename T>
-T ddot_ur(int n,T *dx,int incx,T *dy,int incy)
+static REAL linpack(long nreps,int arsize)
 
     {
-    T dtemp;
-    int i,ix,iy,m;
+    REAL  *a,*b;
+    REAL   norma,t1,kflops,tdgesl,tdgefa,totalt,toverhead,ops;
+    int   *ipvt,n,info,lda;
+    long   i,arsize2d;
 
-    dtemp = ZERO;
-
-    if (n <= 0)
-        return(ZERO);
-
-    if (incx != 1 || incy != 1)
+    lda = arsize;
+    n = arsize/2;
+    arsize2d = (long)arsize*(long)arsize;
+    ops=((2.0*n*n*n)/3.0+2.0*n*n);
+    a=(REAL *)mempool;
+    b=a+arsize2d;
+    ipvt=(int *)&b[arsize];
+    tdgesl=0;
+    tdgefa=0;
+    totalt=second();
+    for (i=0;i<nreps;i++)
         {
-
-        /* code for unequal increments or equal increments != 1 */
-
-        ix = 0;
-        iy = 0;
-        if (incx < 0) ix = (-n+1)*incx;
-        if (incy < 0) iy = (-n+1)*incy;
-        for (i = 0;i < n; i++)
-            {
-            dtemp = dtemp + dx[ix]*dy[iy];
-            ix = ix + incx;
-            iy = iy + incy;
-            }
-        return(dtemp);
+        matgen(a,lda,n,b,&norma);
+        t1 = second();
+        dgefa(a,lda,n,ipvt,&info,1);
+        tdgefa += second()-t1;
+        t1 = second();
+        dgesl(a,lda,n,ipvt,b,0,1);
+        tdgesl += second()-t1;
         }
-
-    /* code for both increments equal to 1 */
-
-    m = n % 5;
-    if (m != 0)
+    for (i=0;i<nreps;i++)
         {
-        for (i = 0; i < m; i++)
-            dtemp = dtemp + dx[i]*dy[i];
-        if (n < 5)
-            return(dtemp);
+        matgen(a,lda,n,b,&norma);
+        t1 = second();
+        dgefa(a,lda,n,ipvt,&info,0);
+        tdgefa += second()-t1;
+        t1 = second();
+        dgesl(a,lda,n,ipvt,b,0,0);
+        tdgesl += second()-t1;
         }
-    for (i = m; i < n; i = i + 5)
-        {
-        dtemp = dtemp + dx[i]*dy[i] +
-        dx[i+1]*dy[i+1] + dx[i+2]*dy[i+2] +
-        dx[i+3]*dy[i+3] + dx[i+4]*dy[i+4];
-        }
-    return(dtemp);
-    }
-
-
-/*
-** Scales a vector by a constant.
-** Jack Dongarra, linpack, 3/11/78.
-** UNROLLED version
-*/
-template <typename T>
-void dscal_ur(int n,T da,T *dx,int incx)
-
-    {
-    int i,m,nincx;
-
-    if (n <= 0)
-        return;
-    if (incx != 1)
-        {
-
-        /* code for increment not equal to 1 */
-
-        nincx = n*incx;
-        for (i = 0; i < nincx; i = i + incx)
-            dx[i] = da*dx[i];
-        return;
-        }
-
-    /* code for increment equal to 1 */
-
-    m = n % 5;
-    if (m != 0)
-        {
-        for (i = 0; i < m; i++)
-            dx[i] = da*dx[i];
-        if (n < 5)
-            return;
-        }
-    for (i = m; i < n; i = i + 5)
-        {
-        dx[i] = da*dx[i];
-        dx[i+1] = da*dx[i+1];
-        dx[i+2] = da*dx[i+2];
-        dx[i+3] = da*dx[i+3];
-        dx[i+4] = da*dx[i+4];
-        }
-    }
-
-
-/*
-** Finds the index of element having max. absolute value.
-** Jack Dongarra, linpack, 3/11/78.
-*/
-template <typename T>
-int idamax(int n,T *dx,int incx)
-
-    {
-    T dmax;
-    int i, ix, itemp;
-
-    if (n < 1)
-        return(-1);
-    if (n ==1 )
-        return(0);
-    if(incx != 1)
-        {
-
-        /* code for increment not equal to 1 */
-
-        ix = 1;
-        dmax = std::fabs((double)dx[0]);
-        ix = ix + incx;
-        for (i = 1; i < n; i++)
-            {
-            if(std::fabs((double)dx[ix]) > dmax)
-                {
-                itemp = i;
-                dmax = std::fabs((double)dx[ix]);
-                }
-            ix = ix + incx;
-            }
-        }
-    else
-        {
-
-        /* code for increment equal to 1 */
-
-        itemp = 0;
-        dmax = std::fabs((double)dx[0]);
-        for (i = 1; i < n; i++)
-            if(std::fabs((double)dx[i]) > dmax)
-                {
-                itemp = i;
-                dmax = std::fabs((double)dx[i]);
-                }
-        }
-    return (itemp);
+    totalt=second()-totalt;
+    if (totalt<0.5 || tdgefa+tdgesl<0.2)
+        return(0.);
+    kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
+    toverhead=totalt-tdgefa-tdgesl;
+    if (tdgefa<0.)
+        tdgefa=0.;
+    if (tdgesl<0.)
+        tdgesl=0.;
+    if (toverhead<0.)
+        toverhead=0.;
+    printf("%8ld %6.2f %6.2f%% %6.2f%% %6.2f%%  %9.3f\n",
+            nreps,totalt,100.*tdgefa/totalt,
+            100.*tdgesl/totalt,100.*toverhead/totalt,
+            kflops);
+    return(totalt);
     }
 
 
@@ -365,8 +160,7 @@ int idamax(int n,T *dx,int incx)
 ** We would like to declare a[][lda], but c does not allow it.  In this
 ** function, references to a[i][j] are written a[lda*i+j].
 */
-template <typename T>
-void matgen(T *a,int lda,int n,T *b,T *norma)
+static void matgen(REAL *a,int lda,int n,REAL *b,REAL *norma)
 
     {
     int init,i,j;
@@ -439,11 +233,10 @@ void matgen(T *a,int lda,int n,T *b,T *norma)
 **   blas daxpy,dscal,idamax
 **
 */
-template <typename T>
-void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
+static void dgefa(REAL *a,int lda,int n,int *ipvt,int *info,int roll)
 
     {
-    T t;
+    REAL t;
     int j,k,kp1,l,nm1;
 
     /* gaussian elimination with partial pivoting */
@@ -459,7 +252,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
                 /* find l = pivot index */
 
-                l = idamax<T>(n-k,&a[lda*k+k],1) + k;
+                l = idamax(n-k,&a[lda*k+k],1) + k;
                 ipvt[k] = l;
 
                 /* zero pivot implies this column already
@@ -480,7 +273,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                     /* compute multipliers */
 
                     t = -ONE/a[lda*k+k];
-                    dscal_r<T>(n-(k+1),t,&a[lda*k+k+1],1);
+                    dscal_r(n-(k+1),t,&a[lda*k+k+1],1);
 
                     /* row elimination with column indexing */
 
@@ -492,7 +285,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                             a[lda*j+l] = a[lda*j+k];
                             a[lda*j+k] = t;
                             }
-                        daxpy_r<T>(n-(k+1),t,&a[lda*k+k+1],1,&a[lda*j+k+1],1);
+                        daxpy_r(n-(k+1),t,&a[lda*k+k+1],1,&a[lda*j+k+1],1);
                         }
                     }
                 else
@@ -513,7 +306,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
                 /* find l = pivot index */
 
-                l = idamax<T>(n-k,&a[lda*k+k],1) + k;
+                l = idamax(n-k,&a[lda*k+k],1) + k;
                 ipvt[k] = l;
 
                 /* zero pivot implies this column already
@@ -534,7 +327,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                     /* compute multipliers */
 
                     t = -ONE/a[lda*k+k];
-                    dscal_ur<T>(n-(k+1),t,&a[lda*k+k+1],1);
+                    dscal_ur(n-(k+1),t,&a[lda*k+k+1],1);
 
                     /* row elimination with column indexing */
 
@@ -546,7 +339,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                             a[lda*j+l] = a[lda*j+k];
                             a[lda*j+k] = t;
                             }
-                        daxpy_ur<T>(n-(k+1),t,&a[lda*k+k+1],1,&a[lda*j+k+1],1);
+                        daxpy_ur(n-(k+1),t,&a[lda*k+k+1],1,&a[lda*j+k+1],1);
                         }
                     }
                 else
@@ -620,11 +413,10 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 **
 **   blas daxpy,ddot
 */
-template <typename T>
-void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
+static void dgesl(REAL *a,int lda,int n,int *ipvt,REAL *b,int job,int roll)
 
     {
-    T    t;
+    REAL    t;
     int     k,kb,l,nm1;
 
     if (roll)
@@ -646,7 +438,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                         b[l] = b[k];
                         b[k] = t;
                         }
-                    daxpy_r<T>(n-(k+1),t,&a[lda*k+k+1],1,&b[k+1],1);
+                    daxpy_r(n-(k+1),t,&a[lda*k+k+1],1,&b[k+1],1);
                     }
 
             /* now solve  u*x = y */
@@ -656,7 +448,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                 k = n - (kb + 1);
                 b[k] = b[k]/a[lda*k+k];
                 t = -b[k];
-                daxpy_r<T>(k,t,&a[lda*k+0],1,&b[0],1);
+                daxpy_r(k,t,&a[lda*k+0],1,&b[0],1);
                 }
             }
         else
@@ -667,7 +459,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
 
             for (k = 0; k < n; k++)
                 {
-                t = ddot_r<T>(k,&a[lda*k+0],1,&b[0],1);
+                t = ddot_r(k,&a[lda*k+0],1,&b[0],1);
                 b[k] = (b[k] - t)/a[lda*k+k];
                 }
 
@@ -677,7 +469,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                 for (kb = 1; kb < nm1; kb++)
                     {
                     k = n - (kb+1);
-                    b[k] = b[k] + ddot_r<T>(n-(k+1),&a[lda*k+k+1],1,&b[k+1],1);
+                    b[k] = b[k] + ddot_r(n-(k+1),&a[lda*k+k+1],1,&b[k+1],1);
                     l = ipvt[k];
                     if (l != k)
                         {
@@ -707,7 +499,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                         b[l] = b[k];
                         b[k] = t;
                         }
-                    daxpy_ur<T>(n-(k+1),t,&a[lda*k+k+1],1,&b[k+1],1);
+                    daxpy_ur(n-(k+1),t,&a[lda*k+k+1],1,&b[k+1],1);
                     }
 
             /* now solve  u*x = y */
@@ -717,7 +509,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                 k = n - (kb + 1);
                 b[k] = b[k]/a[lda*k+k];
                 t = -b[k];
-                daxpy_ur<T>(k,t,&a[lda*k+0],1,&b[0],1);
+                daxpy_ur(k,t,&a[lda*k+0],1,&b[0],1);
                 }
             }
         else
@@ -728,7 +520,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
 
             for (k = 0; k < n; k++)
                 {
-                t = ddot_ur<T>(k,&a[lda*k+0],1,&b[0],1);
+                t = ddot_ur(k,&a[lda*k+0],1,&b[0],1);
                 b[k] = (b[k] - t)/a[lda*k+k];
                 }
 
@@ -738,7 +530,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                 for (kb = 1; kb < nm1; kb++)
                     {
                     k = n - (kb+1);
-                    b[k] = b[k] + ddot_ur<T>(n-(k+1),&a[lda*k+k+1],1,&b[k+1],1);
+                    b[k] = b[k] + ddot_ur(n-(k+1),&a[lda*k+k+1],1,&b[k+1],1);
                     l = ipvt[k];
                     if (l != k)
                         {
@@ -752,124 +544,323 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
     }
 
 
-template <typename T>
-T second(void)
+
+/*
+** Constant times a vector plus a vector.
+** Jack Dongarra, linpack, 3/11/78.
+** ROLLED version
+*/
+static void daxpy_r(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
 
     {
-    return ((T)((T)clock()/(T)CLOCKS_PER_SEC));
+    int i,ix,iy;
+
+    if (n <= 0)
+        return;
+    if (da == ZERO)
+        return;
+
+    if (incx != 1 || incy != 1)
+        {
+
+        /* code for unequal increments or equal increments != 1 */
+
+        ix = 1;
+        iy = 1;
+        if(incx < 0) ix = (-n+1)*incx + 1;
+        if(incy < 0)iy = (-n+1)*incy + 1;
+        for (i = 0;i < n; i++)
+            {
+            dy[iy] = dy[iy] + da*dx[ix];
+            ix = ix + incx;
+            iy = iy + incy;
+            }
+        return;
+        }
+
+    /* code for both increments equal to 1 */
+
+    for (i = 0;i < n; i++)
+        dy[i] = dy[i] + da*dx[i];
     }
 
-/* 
-FUNCTIONALLITY: 
-    Measure execution times.
 
-INPUT VARIABLES:
-    nreps     number of times to repeat the computations
-    job       0 to solve a*x = b 
-              1 to solve trans(a)*x = b
+/*
+** Forms the dot product of two vectors.
+** Jack Dongarra, linpack, 3/11/78.
+** ROLLED version
 */
-template <typename T>
-T linpack (long nreps, int arsize){
+static REAL ddot_r(int n,REAL *dx,int incx,REAL *dy,int incy)
 
-    T  *a,*b;
-    T  t1, norma, kflops, toverhead, ops, tdgefa = 0.0, tdgesl = 0.0, totalt = 0.0;
-    int   *ipvt, n, lda, info = 0;
-    long   arsize2d;
+    {
+    REAL dtemp;
+    int i,ix,iy;
 
-    lda = arsize;
-    n = arsize/2;
-    arsize2d = (long)arsize*(long)arsize;
-    ops = ((2.0*n*n*n)/3.0+2.0*n*n);
-    a=(T *)mempool;
-    b=a+arsize2d;
-    ipvt=(int *)&b[arsize];
+    dtemp = ZERO;
 
-    totalt=second<T>();
-    for (int i = 0; i < nreps; ++i){
-        matgen<T>(a,lda,n,b,&norma);
-        t1 = second<T>();
-        dgefa<T>(a,lda,n,ipvt,&info,1);
-        tdgefa += second<T>()-t1;
-        t1 = second<T>();
-        dgesl<T>(a,lda,n,ipvt,b,0,1);
-        tdgesl += second<T>()-t1;
-    }
+    if (n <= 0)
+        return(ZERO);
 
-    for (int i = 0; i < nreps; ++i){
-        matgen<T>(a,lda,n,b,&norma);
-        t1 = second<T>();
-        dgefa<T>(a,lda,n,ipvt,&info,0);
-        tdgefa += second<T>()-t1;
-        t1 = second<T>();
-        dgesl<T>(a,lda,n,ipvt,b,0,0);
-        tdgesl += second<T>()-t1;
-    }
+    if (incx != 1 || incy != 1)
+        {
 
-    totalt=second<T>()-totalt;
+        /* code for unequal increments or equal increments != 1 */
 
-    if (totalt<0.5 || tdgefa+tdgesl<0.2) return (0.);
-    kflops = 2.* nreps*ops/(1000. * (tdgefa+tdgesl));
-    toverhead = totalt-tdgefa-tdgesl;
-    if (tdgefa<0.) tdgefa=0.;
-    if (tdgesl<0.) tdgesl=0.;
-    if (toverhead<0.) toverhead=0.;
-
-    std::cout << std::fixed;
-    std::cout << std::setprecision(2);
-    std::cout << nreps << " " << totalt << " " << 100.*tdgefa/totalt << "% "         \
-    << 100.*tdgesl/totalt << "% " << 100.*toverhead/totalt << "% " << kflops << '\n';
-    
-    return totalt;
-}
-
-
-
-int main (void){
-    
-    char buf[80];
-    int arsize;
-    long arsize2d,memreq,nreps;
-    size_t  malloc_arg;
-
-    while(1){
-        std::cout << "Enter array size (q to quit) [200]:  ";
-        std::cin >> buf;
-
-        if (buf[0]=='q' || buf[0]=='Q') break;
-        if (buf[0]=='\0' || buf[0]=='\n') arsize=200;
-        else arsize=atoi(buf);
-
-        arsize/=2;
-        arsize*=2;
-        if (arsize<10)
+        ix = 0;
+        iy = 0;
+        if (incx < 0) ix = (-n+1)*incx;
+        if (incy < 0) iy = (-n+1)*incy;
+        for (i = 0;i < n; i++)
             {
-            std::cout << "Too small.\n";
-            continue;
+            dtemp = dtemp + dx[ix]*dy[iy];
+            ix = ix + incx;
+            iy = iy + incy;
             }
+        return(dtemp);
+        }
 
-        arsize2d = (long)arsize*(long)arsize;
-        memreq=arsize2d*sizeof(REAL)+(long)arsize*sizeof(REAL)+(long)arsize*sizeof(int);
-        printf("Memory required:  %ldK.\n",(memreq+512L)>>10);
-        malloc_arg=(size_t)memreq;
-        if (malloc_arg!=memreq || (mempool=malloc(malloc_arg))==NULL)
-            {
-            std::cout << "Not enough memory available for given array size.\n\n";
-            continue;
-            }
+    /* code for both increments equal to 1 */
 
-        std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
-        std::cout << "Machine precision: " << BASE10DIG << " digits. \n";
-        std::cout << "Array size " << arsize << " X " << arsize << ". \n";
-        std::cout << "Average rolled and unrolled performance:\n\n";
-        std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
-        std::cout << "----------------------------------------------------\n";
-
-        nreps = 1;
-        while (linpack<REAL>(nreps,arsize)<10.)
-            nreps *= 2;
-
-        free(mempool);
-        std::cout << '\n';
+    for (i=0;i < n; i++)
+        dtemp = dtemp + dx[i]*dy[i];
+    return(dtemp);
     }
-    
-}
+
+
+/*
+** Scales a vector by a constant.
+** Jack Dongarra, linpack, 3/11/78.
+** ROLLED version
+*/
+static void dscal_r(int n,REAL da,REAL *dx,int incx)
+
+    {
+    int i,nincx;
+
+    if (n <= 0)
+        return;
+    if (incx != 1)
+        {
+
+        /* code for increment not equal to 1 */
+
+        nincx = n*incx;
+        for (i = 0; i < nincx; i = i + incx)
+            dx[i] = da*dx[i];
+        return;
+        }
+
+    /* code for increment equal to 1 */
+
+    for (i = 0; i < n; i++)
+        dx[i] = da*dx[i];
+    }
+
+
+/*
+** constant times a vector plus a vector.
+** Jack Dongarra, linpack, 3/11/78.
+** UNROLLED version
+*/
+static void daxpy_ur(int n,REAL da,REAL *dx,int incx,REAL *dy,int incy)
+
+    {
+    int i,ix,iy,m;
+
+    if (n <= 0)
+        return;
+    if (da == ZERO)
+        return;
+
+    if (incx != 1 || incy != 1)
+        {
+
+        /* code for unequal increments or equal increments != 1 */
+
+        ix = 1;
+        iy = 1;
+        if(incx < 0) ix = (-n+1)*incx + 1;
+        if(incy < 0)iy = (-n+1)*incy + 1;
+        for (i = 0;i < n; i++)
+            {
+            dy[iy] = dy[iy] + da*dx[ix];
+            ix = ix + incx;
+            iy = iy + incy;
+            }
+        return;
+        }
+
+    /* code for both increments equal to 1 */
+
+    m = n % 4;
+    if ( m != 0)
+        {
+        for (i = 0; i < m; i++)
+            dy[i] = dy[i] + da*dx[i];
+        if (n < 4)
+            return;
+        }
+    for (i = m; i < n; i = i + 4)
+        {
+        dy[i] = dy[i] + da*dx[i];
+        dy[i+1] = dy[i+1] + da*dx[i+1];
+        dy[i+2] = dy[i+2] + da*dx[i+2];
+        dy[i+3] = dy[i+3] + da*dx[i+3];
+        }
+    }
+
+
+/*
+** Forms the dot product of two vectors.
+** Jack Dongarra, linpack, 3/11/78.
+** UNROLLED version
+*/
+static REAL ddot_ur(int n,REAL *dx,int incx,REAL *dy,int incy)
+
+    {
+    REAL dtemp;
+    int i,ix,iy,m;
+
+    dtemp = ZERO;
+
+    if (n <= 0)
+        return(ZERO);
+
+    if (incx != 1 || incy != 1)
+        {
+
+        /* code for unequal increments or equal increments != 1 */
+
+        ix = 0;
+        iy = 0;
+        if (incx < 0) ix = (-n+1)*incx;
+        if (incy < 0) iy = (-n+1)*incy;
+        for (i = 0;i < n; i++)
+            {
+            dtemp = dtemp + dx[ix]*dy[iy];
+            ix = ix + incx;
+            iy = iy + incy;
+            }
+        return(dtemp);
+        }
+
+    /* code for both increments equal to 1 */
+
+    m = n % 5;
+    if (m != 0)
+        {
+        for (i = 0; i < m; i++)
+            dtemp = dtemp + dx[i]*dy[i];
+        if (n < 5)
+            return(dtemp);
+        }
+    for (i = m; i < n; i = i + 5)
+        {
+        dtemp = dtemp + dx[i]*dy[i] +
+        dx[i+1]*dy[i+1] + dx[i+2]*dy[i+2] +
+        dx[i+3]*dy[i+3] + dx[i+4]*dy[i+4];
+        }
+    return(dtemp);
+    }
+
+
+/*
+** Scales a vector by a constant.
+** Jack Dongarra, linpack, 3/11/78.
+** UNROLLED version
+*/
+static void dscal_ur(int n,REAL da,REAL *dx,int incx)
+
+    {
+    int i,m,nincx;
+
+    if (n <= 0)
+        return;
+    if (incx != 1)
+        {
+
+        /* code for increment not equal to 1 */
+
+        nincx = n*incx;
+        for (i = 0; i < nincx; i = i + incx)
+            dx[i] = da*dx[i];
+        return;
+        }
+
+    /* code for increment equal to 1 */
+
+    m = n % 5;
+    if (m != 0)
+        {
+        for (i = 0; i < m; i++)
+            dx[i] = da*dx[i];
+        if (n < 5)
+            return;
+        }
+    for (i = m; i < n; i = i + 5)
+        {
+        dx[i] = da*dx[i];
+        dx[i+1] = da*dx[i+1];
+        dx[i+2] = da*dx[i+2];
+        dx[i+3] = da*dx[i+3];
+        dx[i+4] = da*dx[i+4];
+        }
+    }
+
+
+/*
+** Finds the index of element having max. absolute value.
+** Jack Dongarra, linpack, 3/11/78.
+*/
+static int idamax(int n,REAL *dx,int incx)
+
+    {
+    REAL dmax;
+    int i, ix, itemp;
+
+    if (n < 1)
+        return(-1);
+    if (n ==1 )
+        return(0);
+    if(incx != 1)
+        {
+
+        /* code for increment not equal to 1 */
+
+        ix = 1;
+        dmax = fabs((double)dx[0]);
+        ix = ix + incx;
+        for (i = 1; i < n; i++)
+            {
+            if(fabs((double)dx[ix]) > dmax)
+                {
+                itemp = i;
+                dmax = fabs((double)dx[ix]);
+                }
+            ix = ix + incx;
+            }
+        }
+    else
+        {
+
+        /* code for increment equal to 1 */
+
+        itemp = 0;
+        dmax = fabs((double)dx[0]);
+        for (i = 1; i < n; i++)
+            if(fabs((double)dx[i]) > dmax)
+                {
+                itemp = i;
+                dmax = fabs((double)dx[i]);
+                }
+        }
+    return (itemp);
+    }
+
+
+static REAL second(void)
+
+    {
+    return ((REAL)((REAL)clock()/(REAL)CLOCKS_PER_SEC));
+    }
+
