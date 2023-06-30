@@ -23,7 +23,7 @@ constexpr float ONE = 1.0;
 constexpr std:string_view PREC = "Single";
 constexpr int BASE10DIG = std::numeric_limits<float>::digits10;
 
-typedef float   REAL;
+using REAL = float;
 #endif
 
 #ifdef DP
@@ -32,7 +32,7 @@ constexpr double ONE = 1.0;
 constexpr std::string_view PREC = "Double";
 constexpr int BASE10DIG = std::numeric_limits<double>::digits10;
 
-typedef double  REAL;
+using REAL = double;
 #endif
 
 static REAL linpack  (long nreps,int arsize);
