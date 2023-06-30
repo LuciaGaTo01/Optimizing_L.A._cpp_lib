@@ -12,23 +12,25 @@
 #include <iostream>
 #include <cfloat>
 #include <cmath>
+#include <string_view>
+#include <limits>
 
 #define DP
 
 #ifdef SP
-#define ZERO        0.0
-#define ONE         1.0
-#define PREC        "Single"
-#define BASE10DIG   FLT_DIG
+constexpr float ZERO = 0.0;
+constexpr float ONE = 1.0;
+constexpr std:string_view PREC = "Single";
+constexpr int BASE10DIG = std::numeric_limits<float>::digits10;
 
 typedef float   REAL;
 #endif
 
 #ifdef DP
-#define ZERO        0.0e0
-#define ONE         1.0e0
-#define PREC        "Double"
-#define BASE10DIG   DBL_DIG
+constexpr double ZERO = 0.0;
+constexpr double ONE = 1.0;
+constexpr std::string_view PREC = "Double";
+constexpr int BASE10DIG = std::numeric_limits<double>::digits10;
 
 typedef double  REAL;
 #endif
