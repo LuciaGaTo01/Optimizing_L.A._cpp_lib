@@ -61,19 +61,18 @@ int main()
 
     while (1)
         {
-        printf("Enter array size (q to quit) [200]:  ");
-        fgets(buf,79,stdin);
-        if (buf[0]=='q' || buf[0]=='Q')
-            break;
-        if (buf[0]=='\0' || buf[0]=='\n')
-            arsize=200;
-        else
-            arsize=atoi(buf);
+        std::cout << "Enter array size (q to quit) [200]:  ";
+        std::cin >> buf;
+
+        if (buf[0]=='q' || buf[0]=='Q') break;
+        if (buf[0]=='\0' || buf[0]=='\n') arsize=200;
+        else arsize=atoi(buf);
+
         arsize/=2;
         arsize*=2;
         if (arsize<10)
             {
-            printf("Too small.\n");
+            std::cout << "Too small.\n";
             continue;
             }
         arsize2d = (long)arsize*(long)arsize;
@@ -82,20 +81,23 @@ int main()
         malloc_arg=(size_t)memreq;
         if (malloc_arg!=memreq || (mempool=malloc(malloc_arg))==NULL)
             {
-            printf("Not enough memory available for given array size.\n\n");
+            std::cout << "Not enough memory available for given array size.\n\n";
             continue;
             }
-        printf("\n\nLINPACK benchmark, %s precision.\n",PREC);
-        printf("Machine precision:  %d digits.\n",BASE10DIG);
-        printf("Array size %d X %d.\n",arsize,arsize);
-        printf("Average rolled and unrolled performance:\n\n");
-        printf("    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n");
-        printf("----------------------------------------------------\n");
+
+        std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
+        std::cout << "Machine precision: " << BASE10DIG << " digits. \n";
+        std::cout << "Array size " << arsize << " X " << arsize << ". \n";
+        std::cout << "Average rolled and unrolled performance:\n\n";
+        std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
+        std::cout << "----------------------------------------------------\n";
+
         nreps=1;
         while (linpack(nreps,arsize)<10.)
             nreps*=2;
+
         free(mempool);
-        printf("\n");
+        std::cout << '\n';
         }
     }
 
@@ -115,6 +117,7 @@ static REAL linpack(long nreps,int arsize)
     a=(REAL *)mempool;
     b=a+arsize2d;
     ipvt=(int *)&b[arsize];
+
     tdgesl=0;
     tdgefa=0;
     totalt=second();
@@ -139,20 +142,19 @@ static REAL linpack(long nreps,int arsize)
         tdgesl += second()-t1;
         }
     totalt=second()-totalt;
-    if (totalt<0.5 || tdgefa+tdgesl<0.2)
-        return(0.);
+
+    if (totalt<0.5 || tdgefa+tdgesl<0.2) return(0.);
     kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
     toverhead=totalt-tdgefa-tdgesl;
-    if (tdgefa<0.)
-        tdgefa=0.;
-    if (tdgesl<0.)
-        tdgesl=0.;
-    if (toverhead<0.)
-        toverhead=0.;
-    printf("%8ld %6.2f %6.2f%% %6.2f%% %6.2f%%  %9.3f\n",
-            nreps,totalt,100.*tdgefa/totalt,
-            100.*tdgesl/totalt,100.*toverhead/totalt,
-            kflops);
+    if (tdgefa<0.) tdgefa=0.;
+    if (tdgesl<0.) tdgesl=0.;
+    if (toverhead<0.) toverhead=0.;
+
+    std::cout << std::fixed;
+    std::cout << std::setprecision(2);
+    std::cout << nreps << " " << totalt << " " << 100.*tdgefa/totalt << "% "         \
+    << 100.*tdgesl/totalt << "% " << 100.*toverhead/totalt << "% " << kflops << '\n';
+
     return(totalt);
     }
 
