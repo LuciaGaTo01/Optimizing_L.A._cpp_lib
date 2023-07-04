@@ -671,7 +671,7 @@ T second(void)
     }
 
 template <typename T>
-T linpack (long nreps, int arsize)
+T linpack (long nreps, int arsize, char wr[5])
 
     {
     T  *a,*b;
@@ -712,8 +712,10 @@ T linpack (long nreps, int arsize)
         }
 
     totalt=second<T>()-totalt;
-    
-    writeFile(a, b, lda, lda);
+
+    if (wr[0] == 'Y' || wr[0] == 'y'){
+        writeFile(a, b, lda, lda);
+    }
     if (totalt<0.5 || tdgefa+tdgesl<0.2) return(0.);
     kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
     toverhead=totalt-tdgefa-tdgesl;
@@ -735,6 +737,10 @@ void callLinpack (int arsize, const char *PREC){
 
     long arsize2d,memreq,nreps;
     size_t  malloc_arg;
+    char wr[5];
+
+    std::cout << "Would you like to save the obtained output into a file? (Y/N): ";
+    std::cin >> wr;
 
     arsize2d = (long)arsize*(long)arsize;
     memreq=arsize2d*sizeof(T)+(long)arsize*sizeof(T)+(long)arsize*sizeof(int);
@@ -754,7 +760,7 @@ void callLinpack (int arsize, const char *PREC){
         std::cout << "----------------------------------------------------\n";
 
         nreps = 1;
-        while (linpack<T>(nreps,arsize)<10.)
+        while (linpack<T>(nreps,arsize,wr)<10.)
             nreps *= 2;
         }
 }
