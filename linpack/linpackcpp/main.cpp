@@ -212,12 +212,12 @@ int idamax(int n,T *dx)
         return(0);
     
     itemp = 0;
-    dmax = fabs((double)dx[0]);
+    dmax = std::fabs((double)dx[0]);
     for (i = 1; i < n; i++)
-        if(fabs((double)dx[i]) > dmax)
+        if(std::fabs((double)dx[i]) > dmax)
             {
             itemp = i;
-            dmax = fabs((double)dx[i]);
+            dmax = std::fabs((double)dx[i]);
             }
     return (itemp);
     }
