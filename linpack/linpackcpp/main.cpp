@@ -212,12 +212,12 @@ int idamax(int n,T *dx)
         return(0);
     
     itemp = 0;
-    dmax = std::fabs((double)dx[0]);
+    dmax = std::fabs(dx[0]);
     for (i = 1; i < n; i++)
-        if(std::fabs((double)dx[i]) > dmax)
+        if(std::fabs(dx[i]) > dmax)
             {
             itemp = i;
-            dmax = std::fabs((double)dx[i]);
+            dmax = std::fabs(dx[i]);
             }
     return (itemp);
     }
@@ -596,14 +596,15 @@ template <typename T>
 void matgen(T *a,int lda,int n,T *b,T *norma)
 
     {
-    int init,i,j;
+    int i,j;
+    long init;
 
     init = 1325;
     *norma = 0.0;
     for (j = 0; j < n; j++)
         for (i = 0; i < n; i++)
             {
-            init = (int)((long)3125*(long)init % 65536L);
+            init = 3125L*init % 65536L;
             a[lda*j+i] = (init - 32768.0)/16384.0;
             *norma = (a[lda*j+i] > *norma) ? a[lda*j+i] : *norma;
             }
@@ -667,11 +668,11 @@ template <typename T>
 T second(void)
 
     {
-    return ((T)((T)clock()/(T)CLOCKS_PER_SEC));
+    return ((T)clock()/(T)CLOCKS_PER_SEC);
     }
 
 template <typename T>
-T linpack (long nreps, int arsize, char wr[5])
+T linpack (long nreps, long arsize, char wr[5])
 
     {
     T  *a,*b;
@@ -681,7 +682,7 @@ T linpack (long nreps, int arsize, char wr[5])
 
     lda = arsize;
     n = arsize/2;
-    arsize2d = (long)arsize*(long)arsize;
+    arsize2d = arsize*arsize;
     ops=((2.0*n*n*n)/3.0+2.0*n*n);
     a=(T *)mempool;
     b=a+arsize2d;
@@ -733,7 +734,7 @@ T linpack (long nreps, int arsize, char wr[5])
 
 
 template <typename T>
-void callLinpack (int arsize, const char *PREC){
+void callLinpack (long arsize, const char *PREC){
 
     long arsize2d,memreq,nreps;
     size_t  malloc_arg;
@@ -742,8 +743,8 @@ void callLinpack (int arsize, const char *PREC){
     std::cout << "Would you like to save the obtained output into a file? (Y/N): ";
     std::cin >> wr;
 
-    arsize2d = (long)arsize*(long)arsize;
-    memreq=arsize2d*sizeof(T)+(long)arsize*sizeof(T)+(long)arsize*sizeof(int);
+    arsize2d = arsize*arsize;
+    memreq=arsize2d*sizeof(T)+arsize*sizeof(T)+arsize*sizeof(int);
     printf("Memory required:  %ldK.\n",(memreq+512L)>>10);
     malloc_arg=(size_t)memreq;
     if (malloc_arg!=memreq || (mempool=malloc(malloc_arg))==NULL)
@@ -768,7 +769,7 @@ void callLinpack (int arsize, const char *PREC){
 
 int main (){
     char buf[80], precission[10];
-    int arsize;
+    long arsize;
     const char *PREC;
 
     while(1){
