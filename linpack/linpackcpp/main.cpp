@@ -35,35 +35,15 @@ static void *mempool;
 ** ROLLED version
 */
 template <typename T>
-void daxpy_r(int n,T da,T *dx,int incx,T *dy,int incy)
+void daxpy_r(int n,T da,T *dx,T *dy)
 
     {
-    int i,ix,iy;
+    int i;
 
     if (n <= 0)
         return;
     if (da == ZERO<T>)
         return;
-
-    if (incx != 1 || incy != 1)
-        {
-
-        /* code for unequal increments or equal increments != 1 */
-
-        ix = 1;
-        iy = 1;
-        if(incx < 0) ix = (-n+1)*incx + 1;
-        if(incy < 0)iy = (-n+1)*incy + 1;
-        for (i = 0;i < n; i++)
-            {
-            dy[iy] = dy[iy] + da*dx[ix];
-            ix = ix + incx;
-            iy = iy + incy;
-            }
-        return;
-        }
-
-    /* code for both increments equal to 1 */
 
     for (i = 0;i < n; i++)
         dy[i] = dy[i] + da*dx[i];
@@ -77,36 +57,16 @@ void daxpy_r(int n,T da,T *dx,int incx,T *dy,int incy)
 ** ROLLED version
 */
 template <typename T>
-T ddot_r(int n,T *dx,int incx,T *dy,int incy)
+T ddot_r(int n,T *dx,T *dy)
 
     {
     T dtemp;
-    int i,ix,iy;
+    int i;
 
     dtemp = ZERO<T>;
 
     if (n <= 0)
         return(ZERO<T>);
-
-    if (incx != 1 || incy != 1)
-        {
-
-        /* code for unequal increments or equal increments != 1 */
-
-        ix = 0;
-        iy = 0;
-        if (incx < 0) ix = (-n+1)*incx;
-        if (incy < 0) iy = (-n+1)*incy;
-        for (i = 0;i < n; i++)
-            {
-            dtemp = dtemp + dx[ix]*dy[iy];
-            ix = ix + incx;
-            iy = iy + incy;
-            }
-        return(dtemp);
-        }
-
-    /* code for both increments equal to 1 */
 
     for (i=0;i < n; i++)
         dtemp = dtemp + dx[i]*dy[i];
@@ -120,25 +80,13 @@ T ddot_r(int n,T *dx,int incx,T *dy,int incy)
 ** ROLLED version
 */
 template <typename T>
-void dscal_r(int n,T da,T *dx,int incx)
+void dscal_r(int n,T da,T *dx)
 
     {
-    int i,nincx;
+    int i;
 
     if (n <= 0)
         return;
-    if (incx != 1)
-        {
-
-        /* code for increment not equal to 1 */
-
-        nincx = n*incx;
-        for (i = 0; i < nincx; i = i + incx)
-            dx[i] = da*dx[i];
-        return;
-        }
-
-    /* code for increment equal to 1 */
 
     for (i = 0; i < n; i++)
         dx[i] = da*dx[i];
@@ -151,35 +99,15 @@ void dscal_r(int n,T da,T *dx,int incx)
 ** UNROLLED version
 */
 template <typename T>
-void daxpy_ur(int n,T da,T *dx,int incx,T *dy,int incy)
+void daxpy_ur(int n,T da,T *dx,T *dy)
 
     {
-    int i,ix,iy,m;
+    int i,m;
 
     if (n <= 0)
         return;
     if (da == ZERO<T>)
         return;
-
-    if (incx != 1 || incy != 1)
-        {
-
-        /* code for unequal increments or equal increments != 1 */
-
-        ix = 1;
-        iy = 1;
-        if(incx < 0) ix = (-n+1)*incx + 1;
-        if(incy < 0)iy = (-n+1)*incy + 1;
-        for (i = 0;i < n; i++)
-            {
-            dy[iy] = dy[iy] + da*dx[ix];
-            ix = ix + incx;
-            iy = iy + incy;
-            }
-        return;
-        }
-
-    /* code for both increments equal to 1 */
 
     m = n % 4;
     if ( m != 0)
@@ -205,36 +133,16 @@ void daxpy_ur(int n,T da,T *dx,int incx,T *dy,int incy)
 ** UNROLLED version
 */
 template <typename T>
-T ddot_ur(int n,T *dx,int incx,T *dy,int incy)
+T ddot_ur(int n,T *dx,T *dy)
 
     {
     T dtemp;
-    int i,ix,iy,m;
+    int i,m;
 
     dtemp = ZERO<T>;
 
     if (n <= 0)
         return(ZERO<T>);
-
-    if (incx != 1 || incy != 1)
-        {
-
-        /* code for unequal increments or equal increments != 1 */
-
-        ix = 0;
-        iy = 0;
-        if (incx < 0) ix = (-n+1)*incx;
-        if (incy < 0) iy = (-n+1)*incy;
-        for (i = 0;i < n; i++)
-            {
-            dtemp = dtemp + dx[ix]*dy[iy];
-            ix = ix + incx;
-            iy = iy + incy;
-            }
-        return(dtemp);
-        }
-
-    /* code for both increments equal to 1 */
 
     m = n % 5;
     if (m != 0)
@@ -260,25 +168,13 @@ T ddot_ur(int n,T *dx,int incx,T *dy,int incy)
 ** UNROLLED version
 */
 template <typename T>
-void dscal_ur(int n,T da,T *dx,int incx)
+void dscal_ur(int n,T da,T *dx)
 
     {
-    int i,m,nincx;
+    int i,m;
 
     if (n <= 0)
         return;
-    if (incx != 1)
-        {
-
-        /* code for increment not equal to 1 */
-
-        nincx = n*incx;
-        for (i = 0; i < nincx; i = i + incx)
-            dx[i] = da*dx[i];
-        return;
-        }
-
-    /* code for increment equal to 1 */
 
     m = n % 5;
     if (m != 0)
@@ -304,48 +200,25 @@ void dscal_ur(int n,T da,T *dx,int incx)
 ** Jack Dongarra, linpack, 3/11/78.
 */
 template <typename T>
-int idamax(int n,T *dx,int incx)
+int idamax(int n,T *dx)
 
     {
     T dmax;
-    int i, ix, itemp;
+    int i, itemp;
 
     if (n < 1)
         return(-1);
     if (n ==1 )
         return(0);
-    if(incx != 1)
-        {
-
-        /* code for increment not equal to 1 */
-
-        ix = 1;
-        dmax = fabs((double)dx[0]);
-        ix = ix + incx;
-        for (i = 1; i < n; i++)
+    
+    itemp = 0;
+    dmax = fabs((double)dx[0]);
+    for (i = 1; i < n; i++)
+        if(fabs((double)dx[i]) > dmax)
             {
-            if(fabs((double)dx[ix]) > dmax)
-                {
-                itemp = i;
-                dmax = fabs((double)dx[ix]);
-                }
-            ix = ix + incx;
+            itemp = i;
+            dmax = fabs((double)dx[i]);
             }
-        }
-    else
-        {
-
-        /* code for increment equal to 1 */
-
-        itemp = 0;
-        dmax = fabs((double)dx[0]);
-        for (i = 1; i < n; i++)
-            if(fabs((double)dx[i]) > dmax)
-                {
-                itemp = i;
-                dmax = fabs((double)dx[i]);
-                }
-        }
     return (itemp);
     }
 
@@ -421,7 +294,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
                 /* find l = pivot index */
 
-                l = idamax(n-k,&a[lda*k+k],1) + k;
+                l = idamax(n-k,&a[lda*k+k]) + k;
                 ipvt[k] = l;
 
                 /* zero pivot implies this column already
@@ -442,7 +315,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                     /* compute multipliers */
 
                     t = -ONE<T>/a[lda*k+k];
-                    dscal_r(n-(k+1),t,&a[lda*k+k+1],1);
+                    dscal_r(n-(k+1),t,&a[lda*k+k+1]);
 
                     /* row elimination with column indexing */
 
@@ -454,7 +327,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                             a[lda*j+l] = a[lda*j+k];
                             a[lda*j+k] = t;
                             }
-                        daxpy_r(n-(k+1),t,&a[lda*k+k+1],1,&a[lda*j+k+1],1);
+                        daxpy_r(n-(k+1),t,&a[lda*k+k+1],&a[lda*j+k+1]);
                         }
                     }
                 else
@@ -475,7 +348,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
                 /* find l = pivot index */
 
-                l = idamax(n-k,&a[lda*k+k],1) + k;
+                l = idamax(n-k,&a[lda*k+k]) + k;
                 ipvt[k] = l;
 
                 /* zero pivot implies this column already
@@ -496,7 +369,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                     /* compute multipliers */
 
                     t = -ONE<T>/a[lda*k+k];
-                    dscal_ur(n-(k+1),t,&a[lda*k+k+1],1);
+                    dscal_ur(n-(k+1),t,&a[lda*k+k+1]);
 
                     /* row elimination with column indexing */
 
@@ -508,7 +381,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
                             a[lda*j+l] = a[lda*j+k];
                             a[lda*j+k] = t;
                             }
-                        daxpy_ur(n-(k+1),t,&a[lda*k+k+1],1,&a[lda*j+k+1],1);
+                        daxpy_ur(n-(k+1),t,&a[lda*k+k+1],&a[lda*j+k+1]);
                         }
                     }
                 else
@@ -608,7 +481,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                         b[l] = b[k];
                         b[k] = t;
                         }
-                    daxpy_r(n-(k+1),t,&a[lda*k+k+1],1,&b[k+1],1);
+                    daxpy_r(n-(k+1),t,&a[lda*k+k+1],&b[k+1]);
                     }
 
             /* now solve  u*x = y */
@@ -618,7 +491,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                 k = n - (kb + 1);
                 b[k] = b[k]/a[lda*k+k];
                 t = -b[k];
-                daxpy_r(k,t,&a[lda*k+0],1,&b[0],1);
+                daxpy_r(k,t,&a[lda*k+0],&b[0]);
                 }
             }
         else
@@ -629,7 +502,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
 
             for (k = 0; k < n; k++)
                 {
-                t = ddot_r(k,&a[lda*k+0],1,&b[0],1);
+                t = ddot_r(k,&a[lda*k+0],&b[0]);
                 b[k] = (b[k] - t)/a[lda*k+k];
                 }
 
@@ -639,7 +512,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                 for (kb = 1; kb < nm1; kb++)
                     {
                     k = n - (kb+1);
-                    b[k] = b[k] + ddot_r(n-(k+1),&a[lda*k+k+1],1,&b[k+1],1);
+                    b[k] = b[k] + ddot_r(n-(k+1),&a[lda*k+k+1],&b[k+1]);
                     l = ipvt[k];
                     if (l != k)
                         {
@@ -669,7 +542,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                         b[l] = b[k];
                         b[k] = t;
                         }
-                    daxpy_ur(n-(k+1),t,&a[lda*k+k+1],1,&b[k+1],1);
+                    daxpy_ur(n-(k+1),t,&a[lda*k+k+1],&b[k+1]);
                     }
 
             /* now solve  u*x = y */
@@ -679,7 +552,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                 k = n - (kb + 1);
                 b[k] = b[k]/a[lda*k+k];
                 t = -b[k];
-                daxpy_ur(k,t,&a[lda*k+0],1,&b[0],1);
+                daxpy_ur(k,t,&a[lda*k+0],&b[0]);
                 }
             }
         else
@@ -690,7 +563,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
 
             for (k = 0; k < n; k++)
                 {
-                t = ddot_ur(k,&a[lda*k+0],1,&b[0],1);
+                t = ddot_ur(k,&a[lda*k+0],&b[0]);
                 b[k] = (b[k] - t)/a[lda*k+k];
                 }
 
@@ -700,7 +573,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
                 for (kb = 1; kb < nm1; kb++)
                     {
                     k = n - (kb+1);
-                    b[k] = b[k] + ddot_ur(n-(k+1),&a[lda*k+k+1],1,&b[k+1],1);
+                    b[k] = b[k] + ddot_ur(n-(k+1),&a[lda*k+k+1],&b[k+1]);
                     l = ipvt[k];
                     if (l != k)
                         {
@@ -839,7 +712,7 @@ T linpack (long nreps, int arsize)
         }
 
     totalt=second<T>()-totalt;
-
+    
     writeFile(a, b, lda, lda);
     if (totalt<0.5 || tdgefa+tdgesl<0.2) return(0.);
     kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
