@@ -16,6 +16,7 @@
 #include <limits>
 #include <iomanip>
 #include <sys/stat.h>
+#include <vector>
 
 
 template <typename T>
@@ -25,8 +26,11 @@ constexpr T ONE = 1.0;
 template <typename T>
 constexpr int BASE10DIG = std::numeric_limits<T>::digits10;
 
-
-static void *mempool;
+template <typename T>
+std::vector<T> ag;
+template <typename T>
+std::vector<T> bg;
+std::vector<int> ipvtg;
 
 
 /*
@@ -684,9 +688,9 @@ T linpack (long nreps, long arsize, char wr[5])
     n = arsize/2;
     arsize2d = arsize*arsize;
     ops=((2.0*n*n*n)/3.0+2.0*n*n);
-    a=(T *)mempool;
-    b=a+arsize2d;
-    ipvt=(int *)&b[arsize];
+    a=ag<T>.data();
+    b=bg<T>.data();
+    ipvt=ipvtg.data();
 
     tdgesl=0;
     tdgefa=0;
@@ -744,26 +748,30 @@ void callLinpack (long arsize, const char *PREC){
     std::cin >> wr;
 
     arsize2d = arsize*arsize;
-    memreq=arsize2d*sizeof(T)+arsize*sizeof(T)+arsize*sizeof(int);
-    printf("Memory required:  %ldK.\n",(memreq+512L)>>10);
-    malloc_arg=(size_t)memreq;
-    if (malloc_arg!=memreq || (mempool=malloc(malloc_arg))==NULL)
-        {
-        std::cout << "Not enough memory available for given array size.\n\n";
-        }
-    else
-        {
-        std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
-        std::cout << "Machine precision: " << BASE10DIG<T> << " digits. \n";
-        std::cout << "Array size " << arsize << " X " << arsize << ". \n";
-        std::cout << "Average rolled and unrolled performance:\n\n";
-        std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
-        std::cout << "----------------------------------------------------\n";
+    
+    try
+    {
+        ag<T>.reserve(arsize2d);
+        bg<T>.reserve(arsize);
+        ipvtg.reserve(arsize);
+    }
+    catch (const std::bad_alloc& ba) 
+    {
+        std::cerr <<"ERROR: ";
+        std::cerr << ba.what() << "\n";
+    }
 
-        nreps = 1;
-        while (linpack<T>(nreps,arsize,wr)<10.)
-            nreps *= 2;
-        }
+    std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
+    std::cout << "Machine precision: " << BASE10DIG<T> << " digits. \n";
+    std::cout << "Array size " << arsize << " X " << arsize << ". \n";
+    std::cout << "Average rolled and unrolled performance:\n\n";
+    std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
+    std::cout << "----------------------------------------------------\n";
+
+    nreps = 1;
+    while (linpack<T>(nreps,arsize,wr)<10.)
+        nreps *= 2;
+
 }
 
 
@@ -800,7 +808,6 @@ int main (){
             callLinpack <double> (arsize, PREC);
         }
 
-        free(mempool);
         std::cout << '\n';
     }
     
