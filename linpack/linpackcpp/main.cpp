@@ -26,12 +26,6 @@ constexpr T ONE = 1.0;
 template <typename T>
 constexpr int BASE10DIG = std::numeric_limits<T>::digits10;
 
-template <typename T>
-std::vector<T> ag;
-template <typename T>
-std::vector<T> bg;
-std::vector<int> ipvtg;
-
 
 /*
 ** Constant times a vector plus a vector.
@@ -676,21 +670,17 @@ T second(void)
     }
 
 template <typename T>
-T linpack (long nreps, long arsize, char wr[5])
+T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
 
     {
-    T  *a,*b;
     T   norma,t1,kflops,tdgesl,tdgefa,totalt,toverhead,ops;
-    int   *ipvt,n,info,lda;
+    int   n,info,lda;
     long   i,arsize2d;
 
     lda = arsize;
     n = arsize/2;
     arsize2d = arsize*arsize;
     ops=((2.0*n*n*n)/3.0+2.0*n*n);
-    a=ag<T>.data();
-    b=bg<T>.data();
-    ipvt=ipvtg.data();
 
     tdgesl=0;
     tdgefa=0;
@@ -749,11 +739,14 @@ void callLinpack (long arsize, const char *PREC){
 
     arsize2d = arsize*arsize;
     
+    std::vector<T> a;
+    std::vector<T> b;
+    std::vector<int> ipvt;
     try
     {
-        ag<T>.reserve(arsize2d);
-        bg<T>.reserve(arsize);
-        ipvtg.reserve(arsize);
+        a.reserve(arsize2d);
+        b.reserve(arsize);
+        ipvt.reserve(arsize);
     }
     catch (const std::bad_alloc& ba) 
     {
@@ -769,7 +762,7 @@ void callLinpack (long arsize, const char *PREC){
     std::cout << "----------------------------------------------------\n";
 
     nreps = 1;
-    while (linpack<T>(nreps,arsize,wr)<10.)
+    while (linpack<T>(nreps,arsize,wr,a.data(),b.data(),ipvt.data())<10.)
         nreps *= 2;
 
 }
