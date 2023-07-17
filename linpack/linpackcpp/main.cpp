@@ -36,14 +36,12 @@ template <typename T>
 void daxpy_r(int n,T da,T *dx,T *dy)
 
     {
-    int i;
-
     if (n <= 0)
         return;
     if (da == ZERO<T>)
         return;
 
-    for (i = 0;i < n; i++)
+    for (int i = 0;i < n; i++)
         dy[i] = dy[i] + da*dx[i];
     }
 
@@ -58,15 +56,12 @@ template <typename T>
 T ddot_r(int n,T *dx,T *dy)
 
     {
-    T dtemp;
-    int i;
-
-    dtemp = ZERO<T>;
+    T dtemp = ZERO<T>;
 
     if (n <= 0)
         return(ZERO<T>);
 
-    for (i=0;i < n; i++)
+    for (int i=0;i < n; i++)
         dtemp = dtemp + dx[i]*dy[i];
     return(dtemp);
     }
@@ -81,12 +76,10 @@ template <typename T>
 void dscal_r(int n,T da,T *dx)
 
     {
-    int i;
-
     if (n <= 0)
         return;
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         dx[i] = da*dx[i];
     }
 
@@ -100,22 +93,20 @@ template <typename T>
 void daxpy_ur(int n,T da,T *dx,T *dy)
 
     {
-    int i,m;
-
     if (n <= 0)
         return;
     if (da == ZERO<T>)
         return;
 
-    m = n % 4;
+    int m = n % 4;
     if ( m != 0)
         {
-        for (i = 0; i < m; i++)
+        for (int i = 0; i < m; i++)
             dy[i] = dy[i] + da*dx[i];
         if (n < 4)
             return;
         }
-    for (i = m; i < n; i = i + 4)
+    for (int i = m; i < n; i = i + 4)
         {
         dy[i] = dy[i] + da*dx[i];
         dy[i+1] = dy[i+1] + da*dx[i+1];
@@ -134,23 +125,20 @@ template <typename T>
 T ddot_ur(int n,T *dx,T *dy)
 
     {
-    T dtemp;
-    int i,m;
-
-    dtemp = ZERO<T>;
+    T dtemp = ZERO<T>;
 
     if (n <= 0)
         return(ZERO<T>);
 
-    m = n % 5;
+    int m = n % 5;
     if (m != 0)
         {
-        for (i = 0; i < m; i++)
+        for (int i = 0; i < m; i++)
             dtemp = dtemp + dx[i]*dy[i];
         if (n < 5)
             return(dtemp);
         }
-    for (i = m; i < n; i = i + 5)
+    for (int i = m; i < n; i = i + 5)
         {
         dtemp = dtemp + dx[i]*dy[i] +
         dx[i+1]*dy[i+1] + dx[i+2]*dy[i+2] +
@@ -169,20 +157,18 @@ template <typename T>
 void dscal_ur(int n,T da,T *dx)
 
     {
-    int i,m;
-
     if (n <= 0)
         return;
 
-    m = n % 5;
+    int m = n % 5;
     if (m != 0)
         {
-        for (i = 0; i < m; i++)
+        for (int i = 0; i < m; i++)
             dx[i] = da*dx[i];
         if (n < 5)
             return;
         }
-    for (i = m; i < n; i = i + 5)
+    for (int i = m; i < n; i = i + 5)
         {
         dx[i] = da*dx[i];
         dx[i+1] = da*dx[i+1];
@@ -201,17 +187,14 @@ template <typename T>
 int idamax(int n,T *dx)
 
     {
-    T dmax;
-    int i, itemp;
-
     if (n < 1)
         return(-1);
     if (n ==1 )
         return(0);
     
-    itemp = 0;
-    dmax = std::fabs(dx[0]);
-    for (i = 1; i < n; i++)
+    int itemp = 0;
+    T dmax = std::fabs(dx[0]);
+    for (int i = 1; i < n; i++)
         if(std::fabs(dx[i]) > dmax)
             {
             itemp = i;
@@ -277,16 +260,16 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
     {
     T t;
-    int j,k,kp1,l,nm1;
+    int kp1,l;
 
     /* gaussian elimination with partial pivoting */
 
     if (roll)
         {
         *info = 0;
-        nm1 = n - 1;
+        int nm1 = n - 1;
         if (nm1 >=  0)
-            for (k = 0; k < nm1; k++)
+            for (int k = 0; k < nm1; k++)
                 {
                 kp1 = k + 1;
 
@@ -317,7 +300,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
                     /* row elimination with column indexing */
 
-                    for (j = kp1; j < n; j++)
+                    for (int j = kp1; j < n; j++)
                         {
                         t = a[lda*j+l];
                         if (l != k)
@@ -338,9 +321,9 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
     else
         {
         *info = 0;
-        nm1 = n - 1;
+        int nm1 = n - 1;
         if (nm1 >=  0)
-            for (k = 0; k < nm1; k++)
+            for (int k = 0; k < nm1; k++)
                 {
                 kp1 = k + 1;
 
@@ -371,7 +354,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
                     /* row elimination with column indexing */
 
-                    for (j = kp1; j < n; j++)
+                    for (int j = kp1; j < n; j++)
                         {
                         t = a[lda*j+l];
                         if (l != k)
@@ -458,11 +441,11 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
 
     {
     T    t;
-    int     k,kb,l,nm1;
+    int     l;
 
     if (roll)
         {
-        nm1 = n - 1;
+        int nm1 = n - 1;
         if (job == 0)
             {
 
@@ -470,7 +453,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
             /* first solve  l*y = b         */
 
             if (nm1 >= 1)
-                for (k = 0; k < nm1; k++)
+                for (int k = 0; k < nm1; k++)
                     {
                     l = ipvt[k];
                     t = b[l];
@@ -484,9 +467,9 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
 
             /* now solve  u*x = y */
 
-            for (kb = 0; kb < n; kb++)
+            for (int kb = 0; kb < n; kb++)
                 {
-                k = n - (kb + 1);
+                int k = n - (kb + 1);
                 b[k] = b[k]/a[lda*k+k];
                 t = -b[k];
                 daxpy_r(k,t,&a[lda*k+0],&b[0]);
@@ -498,7 +481,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
             /* job = nonzero, solve  trans(a) * x = b  */
             /* first solve  trans(u)*y = b             */
 
-            for (k = 0; k < n; k++)
+            for (int k = 0; k < n; k++)
                 {
                 t = ddot_r(k,&a[lda*k+0],&b[0]);
                 b[k] = (b[k] - t)/a[lda*k+k];
@@ -507,9 +490,9 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
             /* now solve trans(l)*x = y     */
 
             if (nm1 >= 1)
-                for (kb = 1; kb < nm1; kb++)
+                for (int kb = 1; kb < nm1; kb++)
                     {
-                    k = n - (kb+1);
+                    int k = n - (kb+1);
                     b[k] = b[k] + ddot_r(n-(k+1),&a[lda*k+k+1],&b[k+1]);
                     l = ipvt[k];
                     if (l != k)
@@ -523,7 +506,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
         }
     else
         {
-        nm1 = n - 1;
+        int nm1 = n - 1;
         if (job == 0)
             {
 
@@ -531,7 +514,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
             /* first solve  l*y = b         */
 
             if (nm1 >= 1)
-                for (k = 0; k < nm1; k++)
+                for (int k = 0; k < nm1; k++)
                     {
                     l = ipvt[k];
                     t = b[l];
@@ -545,9 +528,9 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
 
             /* now solve  u*x = y */
 
-            for (kb = 0; kb < n; kb++)
+            for (int kb = 0; kb < n; kb++)
                 {
-                k = n - (kb + 1);
+                int k = n - (kb + 1);
                 b[k] = b[k]/a[lda*k+k];
                 t = -b[k];
                 daxpy_ur(k,t,&a[lda*k+0],&b[0]);
@@ -559,7 +542,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
             /* job = nonzero, solve  trans(a) * x = b  */
             /* first solve  trans(u)*y = b             */
 
-            for (k = 0; k < n; k++)
+            for (int k = 0; k < n; k++)
                 {
                 t = ddot_ur(k,&a[lda*k+0],&b[0]);
                 b[k] = (b[k] - t)/a[lda*k+k];
@@ -568,9 +551,9 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
             /* now solve trans(l)*x = y     */
 
             if (nm1 >= 1)
-                for (kb = 1; kb < nm1; kb++)
+                for (int kb = 1; kb < nm1; kb++)
                     {
-                    k = n - (kb+1);
+                    int k = n - (kb+1);
                     b[k] = b[k] + ddot_ur(n-(k+1),&a[lda*k+k+1],&b[k+1]);
                     l = ipvt[k];
                     if (l != k)
@@ -594,22 +577,19 @@ template <typename T>
 void matgen(T *a,int lda,int n,T *b,T *norma)
 
     {
-    int i,j;
-    long init;
-
-    init = 1325;
+    long init = 1325;
     *norma = 0.0;
-    for (j = 0; j < n; j++)
-        for (i = 0; i < n; i++)
+    for (int j = 0; j < n; j++)
+        for (int i = 0; i < n; i++)
             {
             init = 3125L*init % 65536L;
             a[lda*j+i] = (init - 32768.0)/16384.0;
             *norma = (a[lda*j+i] > *norma) ? a[lda*j+i] : *norma;
             }
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         b[i] = 0.0;
-    for (j = 0; j < n; j++)
-        for (i = 0; i < n; i++)
+    for (int j = 0; j < n; j++)
+        for (int i = 0; i < n; i++)
             b[i] = b[i] + a[lda*j+i];
     }
 
@@ -673,19 +653,18 @@ template <typename T>
 T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
 
     {
-    T   norma,t1,kflops,tdgesl,tdgefa,totalt,toverhead,ops;
-    int   n,info,lda;
-    long   i,arsize2d;
+    T   norma,t1;
+    int   info;
 
-    lda = arsize;
-    n = arsize/2;
-    arsize2d = arsize*arsize;
-    ops=((2.0*n*n*n)/3.0+2.0*n*n);
+    int lda = arsize;
+    int n = arsize/2;
+    long arsize2d = arsize*arsize;
+    T ops=((2.0*n*n*n)/3.0+2.0*n*n);
 
-    tdgesl=0;
-    tdgefa=0;
-    totalt=second<T>();
-    for (i=0;i<nreps;i++)
+    T tdgesl=0;
+    T tdgefa=0;
+    T totalt=second<T>();
+    for (long i=0;i<nreps;i++)
         {
         matgen(a,lda,n,b,&norma);
         t1 = second<T>();
@@ -695,7 +674,7 @@ T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
         dgesl(a,lda,n,ipvt,b,0,1);
         tdgesl += second<T>()-t1;
         }
-    for (i=0;i<nreps;i++)
+    for (long i=0;i<nreps;i++)
         {
         matgen(a,lda,n,b,&norma);
         t1 = second<T>();
@@ -712,8 +691,8 @@ T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
         writeFile(a, b, lda, lda);
     }
     if (totalt<0.5 || tdgefa+tdgesl<0.2) return(0.);
-    kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
-    toverhead=totalt-tdgefa-tdgesl;
+    T kflops=2.*nreps*ops/(1000.*(tdgefa+tdgesl));
+    T toverhead=totalt-tdgefa-tdgesl;
     if (tdgefa<0.) tdgefa=0.;
     if (tdgesl<0.) tdgesl=0.;
     if (toverhead<0.) toverhead=0.;
@@ -730,14 +709,12 @@ T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
 template <typename T>
 void callLinpack (long arsize, const char *PREC){
 
-    long arsize2d,memreq,nreps;
-    size_t  malloc_arg;
     char wr[5];
 
     std::cout << "Would you like to save the obtained output into a file? (Y/N): ";
     std::cin >> wr;
 
-    arsize2d = arsize*arsize;
+    long arsize2d = arsize*arsize;
     
     std::vector<T> a;
     std::vector<T> b;
@@ -761,7 +738,7 @@ void callLinpack (long arsize, const char *PREC){
     std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
     std::cout << "----------------------------------------------------\n";
 
-    nreps = 1;
+    long nreps = 1;
     while (linpack<T>(nreps,arsize,wr,a.data(),b.data(),ipvt.data())<10.)
         nreps *= 2;
 
