@@ -45,45 +45,6 @@ void daxpy_r(int n,T da,T *dx,T *dy)
         dy[i] = dy[i] + da*dx[i];
     }
 
-
-
-/*
-** Forms the dot product of two vectors.
-** Jack Dongarra, linpack, 3/11/78.
-** ROLLED version
-*/
-template <typename T>
-T ddot_r(int n,T *dx,T *dy)
-
-    {
-    T dtemp = ZERO<T>;
-
-    if (n <= 0)
-        return(ZERO<T>);
-
-    for (int i=0;i < n; i++)
-        dtemp = dtemp + dx[i]*dy[i];
-    return(dtemp);
-    }
-
-
-/*
-** Scales a vector by a constant.
-** Jack Dongarra, linpack, 3/11/78.
-** ROLLED version
-*/
-template <typename T>
-void dscal_r(int n,T da,T *dx)
-
-    {
-    if (n <= 0)
-        return;
-
-    for (int i = 0; i < n; i++)
-        dx[i] = da*dx[i];
-    }
-
-
 /*
 ** constant times a vector plus a vector.
 ** Jack Dongarra, linpack, 3/11/78.
@@ -115,6 +76,33 @@ void daxpy_ur(int n,T da,T *dx,T *dy)
         }
     }
 
+template <typename T, bool is_rolled>
+void daxpy (int n, T da, T *dx, T *dy){
+    if constexpr (is_rolled){
+        daxpy_r(n, da, dx, dy);
+    } else {
+        daxpy_ur(n, da, dx, dy);
+    }
+}
+
+/*
+** Forms the dot product of two vectors.
+** Jack Dongarra, linpack, 3/11/78.
+** ROLLED version
+*/
+template <typename T>
+T ddot_r(int n,T *dx,T *dy)
+
+    {
+    T dtemp = ZERO<T>;
+
+    if (n <= 0)
+        return(ZERO<T>);
+
+    for (int i=0;i < n; i++)
+        dtemp = dtemp + dx[i]*dy[i];
+    return(dtemp);
+    }
 
 /*
 ** Forms the dot product of two vectors.
@@ -147,6 +135,31 @@ T ddot_ur(int n,T *dx,T *dy)
     return(dtemp);
     }
 
+template <typename T, bool is_rolled>
+T ddot (int n, T *dx, T *dy){
+    if constexpr (is_rolled){
+        return (ddot_r(n, dx, dy));
+    } else {
+        return (ddot_ur(n, dx, dy));
+    }
+}
+
+
+/*
+** Scales a vector by a constant.
+** Jack Dongarra, linpack, 3/11/78.
+** ROLLED version
+*/
+template <typename T>
+void dscal_r(int n,T da,T *dx)
+
+    {
+    if (n <= 0)
+        return;
+
+    for (int i = 0; i < n; i++)
+        dx[i] = da*dx[i];
+    }
 
 /*
 ** Scales a vector by a constant.
@@ -177,6 +190,15 @@ void dscal_ur(int n,T da,T *dx)
         dx[i+4] = da*dx[i+4];
         }
     }
+
+template <typename T, bool is_rolled>
+void dscal (int n,T da,T *dx){
+    if constexpr (is_rolled){
+        dscal_r(n, da, dx);
+    } else {
+        dscal_ur(n, da, dx);
+    }
+}
 
 
 /*
@@ -255,8 +277,8 @@ int idamax(int n,T *dx)
 **   blas daxpy,dscal,idamax
 **
 */
-template <typename T>
-void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
+template <typename T, bool is_rolled>
+void dgefa(T *a,int lda,int n,int *ipvt,int *info)
 
     {
     T t;
@@ -264,114 +286,58 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 
     /* gaussian elimination with partial pivoting */
 
-    if (roll)
-        {
-        *info = 0;
-        int nm1 = n - 1;
-        if (nm1 >=  0)
-            for (int k = 0; k < nm1; k++)
+    *info = 0;
+    int nm1 = n - 1;
+    if (nm1 >=  0)
+        for (int k = 0; k < nm1; k++)
+            {
+            kp1 = k + 1;
+
+            /* find l = pivot index */
+
+            l = idamax(n-k,&a[lda*k+k]) + k;
+            ipvt[k] = l;
+
+            /* zero pivot implies this column already
+                triangularized */
+
+            if (a[lda*k+l] != ZERO<T>)
                 {
-                kp1 = k + 1;
 
-                /* find l = pivot index */
+                /* interchange if necessary */
 
-                l = idamax(n-k,&a[lda*k+k]) + k;
-                ipvt[k] = l;
-
-                /* zero pivot implies this column already
-                   triangularized */
-
-                if (a[lda*k+l] != ZERO<T>)
+                if (l != k)
                     {
+                    t = a[lda*k+l];
+                    a[lda*k+l] = a[lda*k+k];
+                    a[lda*k+k] = t;
+                    }
 
-                    /* interchange if necessary */
+                /* compute multipliers */
 
+                t = -ONE<T>/a[lda*k+k];
+                dscal<T,is_rolled>(n-(k+1),t,&a[lda*k+k+1]);
+
+                /* row elimination with column indexing */
+
+                for (int j = kp1; j < n; j++)
+                    {
+                    t = a[lda*j+l];
                     if (l != k)
                         {
-                        t = a[lda*k+l];
-                        a[lda*k+l] = a[lda*k+k];
-                        a[lda*k+k] = t;
+                        a[lda*j+l] = a[lda*j+k];
+                        a[lda*j+k] = t;
                         }
-
-                    /* compute multipliers */
-
-                    t = -ONE<T>/a[lda*k+k];
-                    dscal_r(n-(k+1),t,&a[lda*k+k+1]);
-
-                    /* row elimination with column indexing */
-
-                    for (int j = kp1; j < n; j++)
-                        {
-                        t = a[lda*j+l];
-                        if (l != k)
-                            {
-                            a[lda*j+l] = a[lda*j+k];
-                            a[lda*j+k] = t;
-                            }
-                        daxpy_r(n-(k+1),t,&a[lda*k+k+1],&a[lda*j+k+1]);
-                        }
+                    daxpy<T,is_rolled>(n-(k+1),t,&a[lda*k+k+1],&a[lda*j+k+1]);
                     }
-                else
-                    (*info) = k;
                 }
-        ipvt[n-1] = n-1;
-        if (a[lda*(n-1)+(n-1)] == ZERO<T>)
-            (*info) = n-1;
-        }
-    else
-        {
-        *info = 0;
-        int nm1 = n - 1;
-        if (nm1 >=  0)
-            for (int k = 0; k < nm1; k++)
-                {
-                kp1 = k + 1;
-
-                /* find l = pivot index */
-
-                l = idamax(n-k,&a[lda*k+k]) + k;
-                ipvt[k] = l;
-
-                /* zero pivot implies this column already
-                   triangularized */
-
-                if (a[lda*k+l] != ZERO<T>)
-                    {
-
-                    /* interchange if necessary */
-
-                    if (l != k)
-                        {
-                        t = a[lda*k+l];
-                        a[lda*k+l] = a[lda*k+k];
-                        a[lda*k+k] = t;
-                        }
-
-                    /* compute multipliers */
-
-                    t = -ONE<T>/a[lda*k+k];
-                    dscal_ur(n-(k+1),t,&a[lda*k+k+1]);
-
-                    /* row elimination with column indexing */
-
-                    for (int j = kp1; j < n; j++)
-                        {
-                        t = a[lda*j+l];
-                        if (l != k)
-                            {
-                            a[lda*j+l] = a[lda*j+k];
-                            a[lda*j+k] = t;
-                            }
-                        daxpy_ur(n-(k+1),t,&a[lda*k+k+1],&a[lda*j+k+1]);
-                        }
-                    }
-                else
-                    (*info) = k;
-                }
-        ipvt[n-1] = n-1;
-        if (a[lda*(n-1)+(n-1)] == ZERO<T>)
-            (*info) = n-1;
-        }
+            else
+                (*info) = k;
+            }
+    ipvt[n-1] = n-1;
+    if (a[lda*(n-1)+(n-1)] == ZERO<T>)
+        (*info) = n-1;
+    
     }
 
 
@@ -436,137 +402,72 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info,int roll)
 **
 **   blas daxpy,ddot
 */
-template <typename T>
-void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job,int roll)
+template <typename T, bool is_rolled>
+void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job)
 
     {
     T    t;
     int     l;
 
-    if (roll)
+    int nm1 = n - 1;
+    if (job == 0)
         {
-        int nm1 = n - 1;
-        if (job == 0)
-            {
 
-            /* job = 0 , solve  a * x = b   */
-            /* first solve  l*y = b         */
+        /* job = 0 , solve  a * x = b   */
+        /* first solve  l*y = b         */
 
-            if (nm1 >= 1)
-                for (int k = 0; k < nm1; k++)
+        if (nm1 >= 1)
+            for (int k = 0; k < nm1; k++)
+                {
+                l = ipvt[k];
+                t = b[l];
+                if (l != k)
                     {
-                    l = ipvt[k];
-                    t = b[l];
-                    if (l != k)
-                        {
-                        b[l] = b[k];
-                        b[k] = t;
-                        }
-                    daxpy_r(n-(k+1),t,&a[lda*k+k+1],&b[k+1]);
+                    b[l] = b[k];
+                    b[k] = t;
                     }
-
-            /* now solve  u*x = y */
-
-            for (int kb = 0; kb < n; kb++)
-                {
-                int k = n - (kb + 1);
-                b[k] = b[k]/a[lda*k+k];
-                t = -b[k];
-                daxpy_r(k,t,&a[lda*k+0],&b[0]);
-                }
-            }
-        else
-            {
-
-            /* job = nonzero, solve  trans(a) * x = b  */
-            /* first solve  trans(u)*y = b             */
-
-            for (int k = 0; k < n; k++)
-                {
-                t = ddot_r(k,&a[lda*k+0],&b[0]);
-                b[k] = (b[k] - t)/a[lda*k+k];
+                daxpy<T,is_rolled>(n-(k+1),t,&a[lda*k+k+1],&b[k+1]);
                 }
 
-            /* now solve trans(l)*x = y     */
+        /* now solve  u*x = y */
 
-            if (nm1 >= 1)
-                for (int kb = 1; kb < nm1; kb++)
-                    {
-                    int k = n - (kb+1);
-                    b[k] = b[k] + ddot_r(n-(k+1),&a[lda*k+k+1],&b[k+1]);
-                    l = ipvt[k];
-                    if (l != k)
-                        {
-                        t = b[l];
-                        b[l] = b[k];
-                        b[k] = t;
-                        }
-                    }
+        for (int kb = 0; kb < n; kb++)
+            {
+            int k = n - (kb + 1);
+            b[k] = b[k]/a[lda*k+k];
+            t = -b[k];
+            daxpy<T,is_rolled>(k,t,&a[lda*k+0],&b[0]);
             }
         }
     else
         {
-        int nm1 = n - 1;
-        if (job == 0)
+
+        /* job = nonzero, solve  trans(a) * x = b  */
+        /* first solve  trans(u)*y = b             */
+
+        for (int k = 0; k < n; k++)
             {
+            t = ddot<T,is_rolled>(k,&a[lda*k+0],&b[0]);
+            b[k] = (b[k] - t)/a[lda*k+k];
+            }
 
-            /* job = 0 , solve  a * x = b   */
-            /* first solve  l*y = b         */
+        /* now solve trans(l)*x = y     */
 
-            if (nm1 >= 1)
-                for (int k = 0; k < nm1; k++)
+        if (nm1 >= 1)
+            for (int kb = 1; kb < nm1; kb++)
+                {
+                int k = n - (kb+1);
+                b[k] = b[k] + ddot<T,is_rolled>(n-(k+1),&a[lda*k+k+1],&b[k+1]);
+                l = ipvt[k];
+                if (l != k)
                     {
-                    l = ipvt[k];
                     t = b[l];
-                    if (l != k)
-                        {
-                        b[l] = b[k];
-                        b[k] = t;
-                        }
-                    daxpy_ur(n-(k+1),t,&a[lda*k+k+1],&b[k+1]);
+                    b[l] = b[k];
+                    b[k] = t;
                     }
-
-            /* now solve  u*x = y */
-
-            for (int kb = 0; kb < n; kb++)
-                {
-                int k = n - (kb + 1);
-                b[k] = b[k]/a[lda*k+k];
-                t = -b[k];
-                daxpy_ur(k,t,&a[lda*k+0],&b[0]);
                 }
-            }
-        else
-            {
-
-            /* job = nonzero, solve  trans(a) * x = b  */
-            /* first solve  trans(u)*y = b             */
-
-            for (int k = 0; k < n; k++)
-                {
-                t = ddot_ur(k,&a[lda*k+0],&b[0]);
-                b[k] = (b[k] - t)/a[lda*k+k];
-                }
-
-            /* now solve trans(l)*x = y     */
-
-            if (nm1 >= 1)
-                for (int kb = 1; kb < nm1; kb++)
-                    {
-                    int k = n - (kb+1);
-                    b[k] = b[k] + ddot_ur(n-(k+1),&a[lda*k+k+1],&b[k+1]);
-                    l = ipvt[k];
-                    if (l != k)
-                        {
-                        t = b[l];
-                        b[l] = b[k];
-                        b[k] = t;
-                        }
-                    }
-            }
         }
     }
-
 
 /*
 ** For matgen,
@@ -668,20 +569,20 @@ T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
         {
         matgen(a,lda,n,b,&norma);
         t1 = second<T>();
-        dgefa(a,lda,n,ipvt,&info,1);
+        dgefa<T,true>(a,lda,n,ipvt,&info);
         tdgefa += second<T>()-t1;
         t1 = second<T>();
-        dgesl(a,lda,n,ipvt,b,0,1);
+        dgesl<T,true>(a,lda,n,ipvt,b,0);
         tdgesl += second<T>()-t1;
         }
     for (long i=0;i<nreps;i++)
         {
         matgen(a,lda,n,b,&norma);
         t1 = second<T>();
-        dgefa(a,lda,n,ipvt,&info,0);
+        dgefa<T,false>(a,lda,n,ipvt,&info);
         tdgefa += second<T>()-t1;
         t1 = second<T>();
-        dgesl(a,lda,n,ipvt,b,0,0);
+        dgesl<T,false>(a,lda,n,ipvt,b,0);
         tdgesl += second<T>()-t1;
         }
 
