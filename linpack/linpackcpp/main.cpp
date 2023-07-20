@@ -31,6 +31,10 @@ enum class roll {
     rolled, unrolled
 };
 
+enum class job {
+    normal_a, trans_a
+};
+
 /*
 ** Constant times a vector plus a vector.
 ** Jack Dongarra, linpack, 3/11/78.
@@ -409,71 +413,84 @@ void dgefa(std::vector<T> &a,int lda,int n,std::vector<int> &ipvt,int &info)
 **   blas daxpy,ddot
 */
 template <typename T, roll is_rolled>
-void dgesl(std::vector<T> &a,int lda,int n,std::vector<int> &ipvt,std::vector<T> &b,int job)
+void dgesl_a(std::vector<T> &a,int lda,int n,std::vector<int> &ipvt,std::vector<T> &b)
 
     {
+    /* job = 0 , solve  a * x = b   */
+
     T    t;
     int     l;
-
     int nm1 = n - 1;
-    if (job == 0)
-        {
 
-        /* job = 0 , solve  a * x = b   */
-        /* first solve  l*y = b         */
-
-        if (nm1 >= 1)
-            for (int k = 0; k < nm1; k++)
+    /*      solve  l*y = b         */
+    if (nm1 >= 1)
+        for (int k = 0; k < nm1; k++)
+            {
+            l = ipvt[k];
+            t = b[l];
+            if (l != k)
                 {
-                l = ipvt[k];
-                t = b[l];
-                if (l != k)
-                    {
-                    b[l] = b[k];
-                    b[k] = t;
-                    }
-                daxpy<T,is_rolled>(n-(k+1),t,a,b,lda*k+k+1,k+1);
+                b[l] = b[k];
+                b[k] = t;
                 }
-
-        /* now solve  u*x = y */
-
-        for (int kb = 0; kb < n; kb++)
-            {
-            int k = n - (kb + 1);
-            b[k] = b[k]/a[lda*k+k];
-            t = -b[k];
-            daxpy<T,is_rolled>(k,t,a,b,lda*k+0,0);
-            }
-        }
-    else
-        {
-
-        /* job = nonzero, solve  trans(a) * x = b  */
-        /* first solve  trans(u)*y = b             */
-
-        for (int k = 0; k < n; k++)
-            {
-            t = ddot<T,is_rolled>(k,a,b,lda*k+0,0);
-            b[k] = (b[k] - t)/a[lda*k+k];
+            daxpy<T,is_rolled>(n-(k+1),t,a,b,lda*k+k+1,k+1);
             }
 
-        /* now solve trans(l)*x = y     */
+    /* now solve  u*x = y */
 
-        if (nm1 >= 1)
-            for (int kb = 1; kb < nm1; kb++)
-                {
-                int k = n - (kb+1);
-                b[k] = b[k] + ddot<T,is_rolled>(n-(k+1),a,b,lda*k+k+1,k+1);
-                l = ipvt[k];
-                if (l != k)
-                    {
-                    t = b[l];
-                    b[l] = b[k];
-                    b[k] = t;
-                    }
-                }
+    for (int kb = 0; kb < n; kb++)
+        {
+        int k = n - (kb + 1);
+        b[k] = b[k]/a[lda*k+k];
+        t = -b[k];
+        daxpy<T,is_rolled>(k,t,a,b,lda*k+0,0);
         }
+
     }
+
+
+template <typename T, roll is_rolled>
+void dgesl_trans(std::vector<T> &a,int lda,int n,std::vector<int> &ipvt,std::vector<T> &b)
+
+    {
+    /* job = nonzero, solve  trans(a) * x = b  */
+
+    T    t;
+    int     l;
+    int nm1 = n - 1;
+
+    /* first solve  trans(u)*y = b             */
+    for (int k = 0; k < n; k++)
+        {
+        t = ddot<T,is_rolled>(k,a,b,lda*k+0,0);
+        b[k] = (b[k] - t)/a[lda*k+k];
+        }
+
+    /* now solve trans(l)*x = y     */
+    if (nm1 >= 1)
+        for (int kb = 1; kb < nm1; kb++)
+            {
+            int k = n - (kb+1);
+            b[k] = b[k] + ddot<T,is_rolled>(n-(k+1),a,b,lda*k+k+1,k+1);
+            l = ipvt[k];
+            if (l != k)
+                {
+                t = b[l];
+                b[l] = b[k];
+                b[k] = t;
+                }
+            }
+    } 
+
+
+template <typename T, roll is_rolled, job is_trans>
+void dgesl(std::vector<T> &a,int lda,int n,std::vector<int> &ipvt,std::vector<T> &b){
+    if constexpr(is_trans == job::normal_a){
+        dgesl_a<T,is_rolled>(a, lda, n, ipvt,b);
+    } else {
+        dgesl_trans<T,is_rolled>(a, lda, n, ipvt, b);
+    }
+}
 
 /*
 ** For matgen,
@@ -580,7 +597,7 @@ T linpack (long nreps, long arsize, char wr[5], std::vector<T> &a, std::vector<T
         dgefa<T,roll::rolled>(a,lda,n,ipvt,info);
         tdgefa += second<T>()-t1;
         t1 = second<T>();
-        dgesl<T,roll::rolled>(a,lda,n,ipvt,b,0);
+        dgesl<T,roll::rolled,job::normal_a>(a,lda,n,ipvt,b);
         tdgesl += second<T>()-t1;
         }
     for (long i=0;i<nreps;i++)
@@ -590,7 +607,7 @@ T linpack (long nreps, long arsize, char wr[5], std::vector<T> &a, std::vector<T
         dgefa<T,roll::unrolled>(a,lda,n,ipvt,info);
         tdgefa += second<T>()-t1;
         t1 = second<T>();
-        dgesl<T,roll::unrolled>(a,lda,n,ipvt,b,0);
+        dgesl<T,roll::unrolled,job::normal_a>(a,lda,n,ipvt,b);
         tdgesl += second<T>()-t1;
         }
 
