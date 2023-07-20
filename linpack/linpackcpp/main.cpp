@@ -37,7 +37,7 @@ enum class roll {
 ** ROLLED version
 */
 template <typename T>
-void daxpy_r(int n,T da,T *dx,T *dy)
+void daxpy_r(int n,T da,std::vector<T> &dx,std::vector<T> &dy, int st1, int st2)
 
     {
     if (n <= 0)
@@ -46,7 +46,7 @@ void daxpy_r(int n,T da,T *dx,T *dy)
         return;
 
     for (int i = 0;i < n; i++)
-        dy[i] = dy[i] + da*dx[i];
+        dy[st2+i] = dy[st2+i] + da*dx[st1+i];
     }
 
 /*
@@ -55,7 +55,7 @@ void daxpy_r(int n,T da,T *dx,T *dy)
 ** UNROLLED version
 */
 template <typename T>
-void daxpy_ur(int n,T da,T *dx,T *dy)
+void daxpy_ur(int n,T da,std::vector<T> &dx,std::vector<T> &dy, int st1, int st2)
 
     {
     if (n <= 0)
@@ -67,25 +67,25 @@ void daxpy_ur(int n,T da,T *dx,T *dy)
     if ( m != 0)
         {
         for (int i = 0; i < m; i++)
-            dy[i] = dy[i] + da*dx[i];
+            dy[st2+i] = dy[st2+i] + da*dx[st1+i];
         if (n < 4)
             return;
         }
     for (int i = m; i < n; i = i + 4)
         {
-        dy[i] = dy[i] + da*dx[i];
-        dy[i+1] = dy[i+1] + da*dx[i+1];
-        dy[i+2] = dy[i+2] + da*dx[i+2];
-        dy[i+3] = dy[i+3] + da*dx[i+3];
+        dy[st2+i] = dy[st2+i] + da*dx[st1+i];
+        dy[st2+i+1] = dy[st2+i+1] + da*dx[st1+i+1];
+        dy[st2+i+2] = dy[st2+i+2] + da*dx[st1+i+2];
+        dy[st2+i+3] = dy[st2+i+3] + da*dx[st1+i+3];
         }
     }
 
 template <typename T, roll is_rolled>
-void daxpy (int n, T da, T *dx, T *dy){
+void daxpy (int n, T da, std::vector<T> &dx, std::vector<T> &dy, int st1, int st2){
     if constexpr (is_rolled == roll::rolled){
-        daxpy_r(n, da, dx, dy);
+        daxpy_r(n, da, dx, dy, st1, st2);
     } else {
-        daxpy_ur(n, da, dx, dy);
+        daxpy_ur(n, da, dx, dy, st1, st2);
     }
 }
 
@@ -95,7 +95,7 @@ void daxpy (int n, T da, T *dx, T *dy){
 ** ROLLED version
 */
 template <typename T>
-T ddot_r(int n,T *dx,T *dy)
+T ddot_r(int n,std::vector<T> &dx,std::vector<T> &dy, int st1, int st2)
 
     {
     T dtemp = ZERO<T>;
@@ -104,7 +104,7 @@ T ddot_r(int n,T *dx,T *dy)
         return(ZERO<T>);
 
     for (int i=0;i < n; i++)
-        dtemp = dtemp + dx[i]*dy[i];
+        dtemp = dtemp + dx[st1+i]*dy[st2+i];
     return(dtemp);
     }
 
@@ -114,7 +114,7 @@ T ddot_r(int n,T *dx,T *dy)
 ** UNROLLED version
 */
 template <typename T>
-T ddot_ur(int n,T *dx,T *dy)
+T ddot_ur(int n,std::vector<T> &dx,std::vector<T> &dy, int st1, int st2)
 
     {
     T dtemp = ZERO<T>;
@@ -126,25 +126,25 @@ T ddot_ur(int n,T *dx,T *dy)
     if (m != 0)
         {
         for (int i = 0; i < m; i++)
-            dtemp = dtemp + dx[i]*dy[i];
+            dtemp = dtemp + dx[st1+i]*dy[st2+i];
         if (n < 5)
             return(dtemp);
         }
     for (int i = m; i < n; i = i + 5)
         {
-        dtemp = dtemp + dx[i]*dy[i] +
-        dx[i+1]*dy[i+1] + dx[i+2]*dy[i+2] +
-        dx[i+3]*dy[i+3] + dx[i+4]*dy[i+4];
+        dtemp = dtemp + dx[st1+i]*dy[st2+i] +
+        dx[st1+i+1]*dy[st2+i+1] + dx[st1+i+2]*dy[st2+i+2] +
+        dx[st1+i+3]*dy[st2+i+3] + dx[st1+i+4]*dy[st2+i+4];
         }
     return(dtemp);
     }
 
 template <typename T, roll is_rolled>
-T ddot (int n, T *dx, T *dy){
+T ddot (int n, std::vector<T> &dx, std::vector<T> &dy, int st1, int st2){
     if constexpr (is_rolled == roll::rolled){
-        return (ddot_r(n, dx, dy));
+        return (ddot_r(n, dx, dy, st1, st2));
     } else {
-        return (ddot_ur(n, dx, dy));
+        return (ddot_ur(n, dx, dy, st1, st2));
     }
 }
 
@@ -155,14 +155,15 @@ T ddot (int n, T *dx, T *dy){
 ** ROLLED version
 */
 template <typename T>
-void dscal_r(int n,T da,T *dx)
+void dscal_r(int n,T da,std::vector<T> &dx, int st)
 
     {
     if (n <= 0)
         return;
 
-    for (int i = 0; i < n; i++)
-        dx[i] = da*dx[i];
+    for (int i = 0; i < n; i++){
+        dx[st+i] = da*dx[st+i];
+    }
     }
 
 /*
@@ -171,7 +172,7 @@ void dscal_r(int n,T da,T *dx)
 ** UNROLLED version
 */
 template <typename T>
-void dscal_ur(int n,T da,T *dx)
+void dscal_ur(int n,T da,std::vector<T> &dx, int st)
 
     {
     if (n <= 0)
@@ -181,26 +182,26 @@ void dscal_ur(int n,T da,T *dx)
     if (m != 0)
         {
         for (int i = 0; i < m; i++)
-            dx[i] = da*dx[i];
+            dx[st+i] = da*dx[st+i];
         if (n < 5)
             return;
         }
     for (int i = m; i < n; i = i + 5)
         {
-        dx[i] = da*dx[i];
-        dx[i+1] = da*dx[i+1];
-        dx[i+2] = da*dx[i+2];
-        dx[i+3] = da*dx[i+3];
-        dx[i+4] = da*dx[i+4];
+        dx[st+i] = da*dx[st+i];
+        dx[st+i+1] = da*dx[st+i+1];
+        dx[st+i+2] = da*dx[st+i+2];
+        dx[st+i+3] = da*dx[st+i+3];
+        dx[st+i+4] = da*dx[st+i+4];
         }
     }
 
 template <typename T, roll is_rolled>
-void dscal (int n,T da,T *dx){
+void dscal (int n,T da,std::vector<T> &dx, int st){
     if constexpr (is_rolled == roll::rolled){
-        dscal_r(n, da, dx);
+        dscal_r(n, da, dx, st);
     } else {
-        dscal_ur(n, da, dx);
+        dscal_ur(n, da, dx, st);
     }
 }
 
@@ -210,7 +211,7 @@ void dscal (int n,T da,T *dx){
 ** Jack Dongarra, linpack, 3/11/78.
 */
 template <typename T>
-int idamax(int n,T *dx)
+int idamax(int n,std::vector<T> &dx, int st)
 
     {
     if (n < 1)
@@ -219,16 +220,17 @@ int idamax(int n,T *dx)
         return(0);
     
     int itemp = 0;
-    T dmax = std::fabs(dx[0]);
-    for (int i = 1; i < n; i++)
-        if(std::fabs(dx[i]) > dmax)
+    T dmax = std::fabs(dx[st]);
+
+    for (int i = 1; i < n; i++){
+        if(std::fabs(dx[st+i]) > dmax)
             {
             itemp = i;
-            dmax = std::fabs(dx[i]);
+            dmax = std::fabs(dx[st+i]);
             }
+        }
     return (itemp);
     }
-
 
 /*
 **
@@ -282,7 +284,7 @@ int idamax(int n,T *dx)
 **
 */
 template <typename T, roll is_rolled>
-void dgefa(T *a,int lda,int n,int *ipvt,int *info)
+void dgefa(std::vector<T> &a,int lda,int n,std::vector<int> &ipvt,int &info)
 
     {
     T t;
@@ -290,7 +292,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info)
 
     /* gaussian elimination with partial pivoting */
 
-    *info = 0;
+    info = 0;
     int nm1 = n - 1;
     if (nm1 >=  0)
         for (int k = 0; k < nm1; k++)
@@ -299,7 +301,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info)
 
             /* find l = pivot index */
 
-            l = idamax(n-k,&a[lda*k+k]) + k;
+            l = idamax(n-k,a,lda*k+k) + k;
             ipvt[k] = l;
 
             /* zero pivot implies this column already
@@ -320,7 +322,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info)
                 /* compute multipliers */
 
                 t = -ONE<T>/a[lda*k+k];
-                dscal<T,is_rolled>(n-(k+1),t,&a[lda*k+k+1]);
+                dscal<T,is_rolled>(n-(k+1),t,a,lda*k+k+1);
 
                 /* row elimination with column indexing */
 
@@ -332,15 +334,15 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info)
                         a[lda*j+l] = a[lda*j+k];
                         a[lda*j+k] = t;
                         }
-                    daxpy<T,is_rolled>(n-(k+1),t,&a[lda*k+k+1],&a[lda*j+k+1]);
+                    daxpy<T,is_rolled>(n-(k+1),t,a,a,lda*k+k+1,lda*j+k+1);
                     }
                 }
             else
-                (*info) = k;
+                info = k;
             }
     ipvt[n-1] = n-1;
     if (a[lda*(n-1)+(n-1)] == ZERO<T>)
-        (*info) = n-1;
+        info = n-1;
     
     }
 
@@ -407,7 +409,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info)
 **   blas daxpy,ddot
 */
 template <typename T, roll is_rolled>
-void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job)
+void dgesl(std::vector<T> &a,int lda,int n,std::vector<int> &ipvt,std::vector<T> &b,int job)
 
     {
     T    t;
@@ -430,7 +432,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job)
                     b[l] = b[k];
                     b[k] = t;
                     }
-                daxpy<T,is_rolled>(n-(k+1),t,&a[lda*k+k+1],&b[k+1]);
+                daxpy<T,is_rolled>(n-(k+1),t,a,b,lda*k+k+1,k+1);
                 }
 
         /* now solve  u*x = y */
@@ -440,7 +442,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job)
             int k = n - (kb + 1);
             b[k] = b[k]/a[lda*k+k];
             t = -b[k];
-            daxpy<T,is_rolled>(k,t,&a[lda*k+0],&b[0]);
+            daxpy<T,is_rolled>(k,t,a,b,lda*k+0,0);
             }
         }
     else
@@ -451,7 +453,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job)
 
         for (int k = 0; k < n; k++)
             {
-            t = ddot<T,is_rolled>(k,&a[lda*k+0],&b[0]);
+            t = ddot<T,is_rolled>(k,a,b,lda*k+0,0);
             b[k] = (b[k] - t)/a[lda*k+k];
             }
 
@@ -461,7 +463,7 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job)
             for (int kb = 1; kb < nm1; kb++)
                 {
                 int k = n - (kb+1);
-                b[k] = b[k] + ddot<T,is_rolled>(n-(k+1),&a[lda*k+k+1],&b[k+1]);
+                b[k] = b[k] + ddot<T,is_rolled>(n-(k+1),a,b,lda*k+k+1,k+1);
                 l = ipvt[k];
                 if (l != k)
                     {
@@ -479,17 +481,17 @@ void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job)
 ** function, references to a[i][j] are written a[lda*i+j].
 */
 template <typename T>
-void matgen(T *a,int lda,int n,T *b,T *norma)
+void matgen(std::vector<T> &a,int lda,int n,std::vector<T> &b,T &norma)
 
     {
     long init = 1325;
-    *norma = 0.0;
+    norma = 0.0;
     for (int j = 0; j < n; j++)
         for (int i = 0; i < n; i++)
             {
             init = 3125L*init % 65536L;
             a[lda*j+i] = (init - 32768.0)/16384.0;
-            *norma = (a[lda*j+i] > *norma) ? a[lda*j+i] : *norma;
+            norma = (a[lda*j+i] > norma) ? a[lda*j+i] : norma;
             }
     for (int i = 0; i < n; i++)
         b[i] = 0.0;
@@ -500,7 +502,7 @@ void matgen(T *a,int lda,int n,T *b,T *norma)
 
 
 template <typename T>
-static void writeFile (T *a, T *b, int nrows, int ncols){
+static void writeFile (std::vector<T> &a, std::vector<T> &b, int nrows, int ncols){
     FILE *fptra, *fptrb;
     char fileNameA[100], fileNameb[100];
     struct stat st;
@@ -538,8 +540,10 @@ static void writeFile (T *a, T *b, int nrows, int ncols){
         exit(1);
     }
 
-    fwrite(a, sizeof(a[0]), nrows*ncols, fptra);
-    fwrite(b, sizeof(b[0]), nrows, fptrb);
+    auto *aa = a.data();
+    auto *bb = b.data();
+    fwrite(aa, sizeof(aa[0]), nrows*ncols, fptra);
+    fwrite(bb, sizeof(bb[0]), nrows, fptrb);
 
     fclose(fptra);
     fclose(fptrb);
@@ -555,7 +559,7 @@ T second(void)
     }
 
 template <typename T>
-T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
+T linpack (long nreps, long arsize, char wr[5], std::vector<T> &a, std::vector<T> &b, std::vector<int> &ipvt)
 
     {
     T   norma,t1;
@@ -571,9 +575,9 @@ T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
     T totalt=second<T>();
     for (long i=0;i<nreps;i++)
         {
-        matgen(a,lda,n,b,&norma);
+        matgen(a,lda,n,b,norma);
         t1 = second<T>();
-        dgefa<T,roll::rolled>(a,lda,n,ipvt,&info);
+        dgefa<T,roll::rolled>(a,lda,n,ipvt,info);
         tdgefa += second<T>()-t1;
         t1 = second<T>();
         dgesl<T,roll::rolled>(a,lda,n,ipvt,b,0);
@@ -581,9 +585,9 @@ T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
         }
     for (long i=0;i<nreps;i++)
         {
-        matgen(a,lda,n,b,&norma);
+        matgen(a,lda,n,b,norma);
         t1 = second<T>();
-        dgefa<T,roll::unrolled>(a,lda,n,ipvt,&info);
+        dgefa<T,roll::unrolled>(a,lda,n,ipvt,info);
         tdgefa += second<T>()-t1;
         t1 = second<T>();
         dgesl<T,roll::unrolled>(a,lda,n,ipvt,b,0);
@@ -638,7 +642,7 @@ void callLinpack (long arsize, const char *PREC){
         std::cout << "----------------------------------------------------\n";
 
         long nreps = 1;
-        while (linpack<T>(nreps,arsize,wr,a.data(),b.data(),ipvt.data())<10.)
+        while (linpack<T>(nreps,arsize,wr,a,b,ipvt)<10.)
             nreps *= 2;
 
     }
