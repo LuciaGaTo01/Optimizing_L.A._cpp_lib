@@ -636,6 +636,7 @@ void callLinpack (long arsize, const char *PREC){
         long nreps = 1;
         while (linpack<T>(nreps,arsize,wr,a.data(),b.data(),ipvt.data())<10.)
             nreps *= 2;
+
     }
     catch (const std::bad_alloc& ba) 
     {
