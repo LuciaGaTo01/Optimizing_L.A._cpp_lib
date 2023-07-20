@@ -27,6 +27,10 @@ template <typename T>
 constexpr int BASE10DIG = std::numeric_limits<T>::digits10;
 
 
+enum class roll {
+    rolled, unrolled
+};
+
 /*
 ** Constant times a vector plus a vector.
 ** Jack Dongarra, linpack, 3/11/78.
@@ -76,9 +80,9 @@ void daxpy_ur(int n,T da,T *dx,T *dy)
         }
     }
 
-template <typename T, bool is_rolled>
+template <typename T, roll is_rolled>
 void daxpy (int n, T da, T *dx, T *dy){
-    if constexpr (is_rolled){
+    if constexpr (is_rolled == roll::rolled){
         daxpy_r(n, da, dx, dy);
     } else {
         daxpy_ur(n, da, dx, dy);
@@ -135,9 +139,9 @@ T ddot_ur(int n,T *dx,T *dy)
     return(dtemp);
     }
 
-template <typename T, bool is_rolled>
+template <typename T, roll is_rolled>
 T ddot (int n, T *dx, T *dy){
-    if constexpr (is_rolled){
+    if constexpr (is_rolled == roll::rolled){
         return (ddot_r(n, dx, dy));
     } else {
         return (ddot_ur(n, dx, dy));
@@ -191,9 +195,9 @@ void dscal_ur(int n,T da,T *dx)
         }
     }
 
-template <typename T, bool is_rolled>
+template <typename T, roll is_rolled>
 void dscal (int n,T da,T *dx){
-    if constexpr (is_rolled){
+    if constexpr (is_rolled == roll::rolled){
         dscal_r(n, da, dx);
     } else {
         dscal_ur(n, da, dx);
@@ -277,7 +281,7 @@ int idamax(int n,T *dx)
 **   blas daxpy,dscal,idamax
 **
 */
-template <typename T, bool is_rolled>
+template <typename T, roll is_rolled>
 void dgefa(T *a,int lda,int n,int *ipvt,int *info)
 
     {
@@ -402,7 +406,7 @@ void dgefa(T *a,int lda,int n,int *ipvt,int *info)
 **
 **   blas daxpy,ddot
 */
-template <typename T, bool is_rolled>
+template <typename T, roll is_rolled>
 void dgesl(T *a,int lda,int n,int *ipvt,T *b,int job)
 
     {
@@ -569,20 +573,20 @@ T linpack (long nreps, long arsize, char wr[5], T *a, T *b, int *ipvt)
         {
         matgen(a,lda,n,b,&norma);
         t1 = second<T>();
-        dgefa<T,true>(a,lda,n,ipvt,&info);
+        dgefa<T,roll::rolled>(a,lda,n,ipvt,&info);
         tdgefa += second<T>()-t1;
         t1 = second<T>();
-        dgesl<T,true>(a,lda,n,ipvt,b,0);
+        dgesl<T,roll::rolled>(a,lda,n,ipvt,b,0);
         tdgesl += second<T>()-t1;
         }
     for (long i=0;i<nreps;i++)
         {
         matgen(a,lda,n,b,&norma);
         t1 = second<T>();
-        dgefa<T,false>(a,lda,n,ipvt,&info);
+        dgefa<T,roll::unrolled>(a,lda,n,ipvt,&info);
         tdgefa += second<T>()-t1;
         t1 = second<T>();
-        dgesl<T,false>(a,lda,n,ipvt,b,0);
+        dgesl<T,roll::unrolled>(a,lda,n,ipvt,b,0);
         tdgesl += second<T>()-t1;
         }
 
