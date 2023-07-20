@@ -625,23 +625,23 @@ void callLinpack (long arsize, const char *PREC){
         a.reserve(arsize2d);
         b.reserve(arsize);
         ipvt.reserve(arsize);
+
+        std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
+        std::cout << "Machine precision: " << BASE10DIG<T> << " digits. \n";
+        std::cout << "Array size " << arsize << " X " << arsize << ". \n";
+        std::cout << "Average rolled and unrolled performance:\n\n";
+        std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
+        std::cout << "----------------------------------------------------\n";
+
+        long nreps = 1;
+        while (linpack<T>(nreps,arsize,wr,a.data(),b.data(),ipvt.data())<10.)
+            nreps *= 2;
     }
     catch (const std::bad_alloc& ba) 
     {
         std::cerr <<"ERROR: ";
         std::cerr << ba.what() << "\n";
     }
-
-    std::cout << "\n\nLINPACK benchmark, " << PREC <<" precision. \n";
-    std::cout << "Machine precision: " << BASE10DIG<T> << " digits. \n";
-    std::cout << "Array size " << arsize << " X " << arsize << ". \n";
-    std::cout << "Average rolled and unrolled performance:\n\n";
-    std::cout << "    Reps Time(s) DGEFA   DGESL  OVERHEAD    KFLOPS\n";
-    std::cout << "----------------------------------------------------\n";
-
-    long nreps = 1;
-    while (linpack<T>(nreps,arsize,wr,a.data(),b.data(),ipvt.data())<10.)
-        nreps *= 2;
 
 }
 
