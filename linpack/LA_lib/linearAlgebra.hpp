@@ -1,406 +1,187 @@
 
-
 #ifndef ALINEAR_ALGEBRA_DEFINITIONS_HPP_DEFINED
 #define ALINEAR_ALGEBRA_DEFINITIONS_HPP_DEFINED
 
 namespace LA_lib{
 
-// template <typename T>
-// class submat{
-//     private:
-
-//     matrix<T> &m;
-//     int ri;
-//     int rn;
-//     int ci;
-//     int cn;
-//     int n_elems;
-
-//     public:
-
-//     submat():
-//         ri {0},
-//         rn {0},
-//         ci {0},
-//         cn {0},
-//         n_elems {0}
-//     {}
-
-//     submat(matrix<T> &ma, int icol, int ncol, int irow, int nrow):
-//         m {ma},
-//         ri{irow},
-//         rn{nrow},
-//         ci{icol},
-//         cn{ncol},
-//         n_elems{nrow*ncol}
-//     {}
-
-//     constexpr int
-//     rows() const noexcept
-//     {
-//         return this->rn;
-//     }
-
-//     constexpr int
-//     columns() const noexcept
-//     {
-//         return this->rc;
-//     }
-
-//     constexpr int
-//     size() const noexcept
-//     {
-//         return this->n_elems;
-//     }
-
-//     constexpr auto
-//     operator () (int r, int c)
-//     {
-//         return m(ri+r,c+ci);
-//     }
-
-//     template <typename TT>
-//     constexpr submat&
-//     operator =(submat<TT> const& subminit)
-//     {
-//         for (int i = 0; i < rn; ++i){
-//             for (int j = 0; j < cn; ++j){
-//                 m(i+ri,j+ci) = subminit(i,j);
-//             }
-//         }
-
-//         return *this;
-//     }
-
-//     template <typename TT>
-//     constexpr submat
-//     operator +(submat<TT> const& m1, submat<TT> const& m2)
-//     {
-//         for (int i = 0; i < rn; ++i){
-//             for (int j = 0; j < cn; ++j){
-//                 m(i+ri,j+ci) = m1(i,j) + m2(i,j);
-//             }
-//         }
-
-//         return *this;
-//     }
-
-//     constexpr submat
-//     operator -()
-//     {
-//         for (int i = 0; i < rn; ++i){
-//             for (int j = 0; j < cn; ++j){
-//                 m(i+ri,j+ci) = - m(i+ri,j+ci);
-//             }
-//         }
-
-//         return *this;
-//     }
-
-//     template <typename TT>
-//     constexpr submat
-//     operator -(submat<TT> const& m1,submat<TT> const& m2)
-//     {
-//         this->resize(m1.rows(), m1.columns());
-
-//         for (int i = 0; i < n_rows; ++i){
-//             for (int j = 0; j < n_cols; ++j){
-//                 m(ri+i,ci+j) = m1(i,j) - m2(i,j);
-//             }
-//         }
-
-//         return *this;
-//     }
-
-//     template <typename TT>
-//     constexpr submat
-//     operator *(submat<TT> const& m1,submat<TT> const& m2)
-//     {
-//         this->resize(m1.rows(), m2.columns());
-
-//         for (int i = 0; i < n_rows; ++i){
-//             for (int j = 0; j < n_cols; ++j){
-
-//                 TT aux = 0;
-//                 for (int k = 0; k < m1.rows(); ++k){
-//                     aux += m1(i,k) * m2(k,j);
-//                 }
-//                 m(ri+i,ci+j) = aux;
-//             }
-//         }
-
-//         return *this;
-//     }
-
-//     template <typename TT>
-//     constexpr submat
-//     operator *(submat<TT> const& m1, TT const& val)
-//     {
-//         this->resize(m1.rows(), m1.columns());
-
-//         for (int i = 0; i < n_rows; ++i){
-//             for (int j = 0; j < n_cols; ++j){
-//                 m(ri+i,ci+j) = m1(i,j) * val;
-//             }
-//         }
-
-//         return *this;
-//     }
-
-//     template <typename TT>
-//     constexpr submat
-//     operator *(TT const& val, submat<TT> const& m1)
-//     {
-//         this->resize(m1.rows(), m1.columns());
-
-//         for (int i = 0; i < n_rows; ++i){
-//             for (int j = 0; j < n_cols; ++j){
-//                 m(ri+i,ci+j) = val * m1(i,j);
-//             }
-//         } 
-
-//         return *this;
-//     }
-
-//     template <typename TT>
-//     constexpr submat
-//     operator /(submat<TT> const& m1, TT const& val)
-//     {
-//         this->resize(m1.rows(), m1.columns());
-
-//         for (int i = 0; i < n_rows; ++i){
-//             for (int j = 0; j < n_cols; ++j){
-//                 m(ri+i,ci+j) = m1(i,j)/val;
-//             }
-//         }
-
-//         return *this;
-//     }
-
-
-// };
-
+template <typename T>
+class matrix_view;
 
 
 template <typename T>
-class matrix{
+class matrix
+{
     private:
 
-    using matrix_type = std::vector<T>;
+        std::vector<T> buffer;
+        int nrows;
+        int ncols;
 
-    matrix_type m_elems;
-    int n_rows;
-    int n_cols;
-    int n_elems;
+        template <typename U>
+        friend class matrix_view;
 
     public:
 
-    matrix():
-        m_elems(0),
-        n_rows{0},
-        n_cols{0},
-        n_elems{0}
-    {}
+        matrix():
+            buffer(0),
+            nrows{0},
+            ncols{0}
+        {}
 
-    matrix(T rows, T cols): 
-        m_elems(rows*cols), 
-        n_rows{rows},
-        n_cols{cols},
-        n_elems{rows*cols}
-    {}
+        matrix(T rows, T cols):
+            buffer(rows*cols),
+            nrows{rows},
+            ncols{cols}
+        {}
 
-    template <class U>
-    constexpr matrix&
-    operator =(std::initializer_list<U> linit)
-    {
-        m_elems = linit;
-        return *this;
-    }
-
-    template <typename TT>
-    constexpr matrix&
-    operator =(matrix<TT> const& minit)
-    {
-        m_elems = minit.m_elems;
-        n_rows = minit.n_rows;
-        n_cols = minit.n_cols;
-        n_elems = minit.n_elems;
-        return *this;
-    }
-
-    constexpr int
-    rows() const noexcept
-    {
-        return this->n_rows;
-    }
-
-    constexpr int
-    columns() const noexcept
-    {
-        return this->n_cols;
-    }
-
-    constexpr int
-    size() const noexcept
-    {
-        return this->n_elems;
-    }
-
-    constexpr void
-    resize(int rn, int cn)
-    {
-        m_elems.reserve(rn*cn);
-        m_elems.resize(rn*cn);
-        n_rows = rn;
-        n_cols = cn;
-        n_elems = rn*cn;
-    }
-
-    constexpr void
-    resize_rows(int rn)
-    {
-        m_elems.reserve(rn*n_cols);
-        m_elems.resize(rn*n_cols);
-        n_rows = rn;
-        n_elems = rn*n_cols;
-    }
-
-    constexpr void
-    resize_columns(int cn)
-    {
-        m_elems.reserve(n_rows*cn);
-        m_elems.resize(n_rows*cn);
-        n_cols = cn;
-        n_elems = n_rows*cn;
-    }
-
-    constexpr auto
-    operator () (int ri, int ci)
-    {
-        return m_elems[(ri*n_cols) + ci];
-    }
-
-    constexpr auto
-    operator () (int i)
-    {
-        return m_elems[i];
-    }
-
-    constexpr matrix
-    operator -()
-    {
-        for (int i = 0; i < n_rows; ++i){
-            for (int j = 0; j < n_cols; ++j){
-                m_elems[(i*n_cols)+j] = - m_elems[(i*n_cols)+j];
-            }
+        template <typename U>
+        constexpr matrix&
+        operator =(matrix<U> const& rhs)
+        {
+            buffer = rhs.buffer;
+            nrows = rhs.nrows;
+            ncols = rhs.ncols;
+            return *this;
         }
 
-        return *this;
-    }
+        constexpr int
+        rows() const noexcept{ return nrows; }
 
-    // template <typename TT>
-    // constexpr submat
-    // submatrix(int ri, int rn, int ci, int cn)
-    // {
-    //     return submat(*this, ci, cn, ri, rn);
-    // }
+        constexpr int
+        columns() const noexcept{ return ncols; }
+
+        constexpr int
+        size() const noexcept{ return (nrows*ncols); }
+
+        constexpr void
+        resize(int rn, int cn)
+        {
+            buffer.reserve(rn*cn);
+            buffer.resize(rn*cn);
+            nrows = rn;
+            ncols = cn;
+        }
+
+        T operator () (int i) const{ return buffer[i]; }
+
+        T &operator () (int i){ return buffer[i]; } 
+
+        T operator () (int ri, int ci) const{ return buffer[(ri*ncols) + ci]; }
+
+        T &operator () (int ri, int ci){ return buffer[(ri*ncols) + ci]; } 
+
+        matrix_view<T> submatrix(int ri, int rn, int ci, int cn)
+        {
+            return matrix_view(*this, ri, rn, ci, cn);
+        }
+
+        T * data(){
+            return buffer.data();
+        }
 
 };
 
-template <typename TT>
-constexpr matrix<TT>
-operator +(matrix<TT> const& m1, matrix<TT> const& m2)
-{
-    matrix<TT> m(m1.rows(), m1.columns());
 
-    for (int i = 0; i < m1.rows(); ++i){
-        for (int j = 0; j < m1.columns(); ++j){
-            m(i,j) = m1(i,j) + m2(i,j);
-        }
-    }
+template <typename T>
+class matrix_view{
+    private:
 
-    return m;
+        matrix<T> &mview;
+        int row_index;
+        int row_size;
+        int column_index;
+        int column_size;
 
-}
+    public:
 
-template <typename TT>
-constexpr matrix<TT>
-operator -(matrix<TT> const& m1,matrix<TT> const& m2)
-{
-    matrix<TT> m(m1.rows(), m1.columns());
+        matrix_view(matrix<T> &m, int ri, int rn, int ci, int cn): 
+            mview{m}, 
+            row_index{ri}, row_size{rn}, 
+            column_index{ci}, column_size{cn}
+        {}
 
-    for (int i = 0; i < m1.rows(); ++i){
-        for (int j = 0; j < m1.columns(); ++j){
-            m(i,j) = m1(i,j) - m2(i,j);
-        }
-    }
+        constexpr int
+        rows() const noexcept{ return row_size; }
 
-    return m;
-}
+        constexpr int
+        columns() const noexcept{ return column_size; }
 
-template <typename TT>
-constexpr matrix<TT>
-operator *(matrix<TT> const& m1,matrix<TT> const& m2)
-{
-    matrix<TT> m(m1.rows(), m2.columns());
+        constexpr int
+        size() const noexcept{ return (row_size*column_size); }
 
-    for (int i = 0; i < m1.rows(); ++i){
-        for (int j = 0; j < m2.columns(); ++j){
+        T operator () (int i) const{ return mview(i+row_index); }
 
-            TT aux = 0;
-            for (int k = 0; k < m1.rows(); ++k){
-                aux += m1(i,k) * m2(k,j);
+        T &operator () (int i){ return mview(i+row_index); } 
+
+        T operator () (int ri, int ci) const{ return mview(ri+row_index, ci+column_index); }
+
+        T &operator () (int ri, int ci){ return mview(ri+row_index, ci+column_index); } 
+        
+        matrix_view<T> & operator +=(const matrix_view<T> &rhs)
+        {
+            for (int i = 0; i < row_size; ++i){
+                for (int j = 0; j < column_size; ++j){
+                    this->operator()(i,j) += rhs(i,j);
+                }
             }
-            m(i,j) = aux;
+
+            return *this;
         }
+
+        matrix_view<T> & operator *=(const T &rhs)
+        {
+            for (int i = 0; i < row_size; ++i){
+                for (int j = 0; j < column_size; ++j){
+                    this->operator()(i,j) *= rhs;
+                }
+            }
+
+            return *this;
+        }
+
+        void swap_columns(int ci, int cj)
+        {
+            T aux = 0;
+            if (ci != cj){
+                for (int i = 0; i < row_size; ++i){
+                    aux = this->operator()(i,ci);
+                    this->operator()(i,ci) = this->operator()(i,cj);
+                    this->operator()(i,cj) = aux;
+                }
+            }
+
+        }
+
+        friend matrix<T> operator *(const matrix_view &lhs, const matrix_view &rhs){
+            matrix<T> mat(lhs.rows(), rhs.columns());
+
+            T aux;
+            for (int i = 0; i < lhs.rows(); ++i){
+                for (int j = 0; j < rhs.columns(); ++j){
+                    aux = 0;
+                    for (int k = 0; k < lhs.columns(); ++k){
+                        aux += lhs(i,k) * rhs(k, j);
+                    }
+                    mat(i,j) = aux;
+                }
+            }
+
+            return mat;
+
+        }
+
+};
+
+template <class T>
+void PRINT (T &mat){
+    std::cout << "\n\nSize: " << mat.rows() << "x" << mat.columns() << "\n";
+    std::cout << "---------------------------------------------------------\n";
+    for (int i = 0; i < mat.rows(); ++i){
+        for (int j = 0; j < mat.columns(); ++j){
+            std::cout << mat(i,j) << "\t";
+        }
+        std::cout << "\n";
     }
-
-    return m;
-}
-
-template <typename TT>
-constexpr matrix<TT>
-operator *(matrix<TT> const& m1, TT const& val)
-{
-    matrix<TT> m(m1.rows(), m1.columns());
-
-    for (int i = 0; i < m1.rows(); ++i){
-        for (int j = 0; j < m1.columns(); ++j){
-            m(i,j) = m1(i,j) * val;
-        }
-    }
-
-    return m;
-}
-
-template <typename TT>
-constexpr matrix<TT>
-operator *(TT const& val, matrix<TT> const& m1)
-{
-    matrix<TT> m(m1.rows(), m1.columns());
-
-    for (int i = 0; i < m1.rows(); ++i){
-        for (int j = 0; j < m1.columns(); ++j){
-            m(i,j) = val * m1(i,j);
-        }
-    } 
-
-    return m;
-}
-
-template <typename TT>
-constexpr matrix<TT>
-operator /(matrix<TT> const& m1, TT const& val)
-{
-    matrix<TT> m(m1.rows(), m1.columns());
-
-    for (int i = 0; i < m1.rows(); ++i){
-        for (int j = 0; j < m1.columns(); ++j){
-            m(i,j) = m1(i,j)/val;
-        }
-    }
-
-    return m;
 }
 
 }
