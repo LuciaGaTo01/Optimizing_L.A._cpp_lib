@@ -16,11 +16,6 @@ int main (){
 
     m.resize_columns(2);
 
-    // auto t = typeid(v + v);
-
-    if (t==typeid(int)){
-        std::cout << "Si soy \n\n";
-    }
     // m(0,0) = 2;
     std::cout << m.columns() << "\n";
     std::cout << m(0,0) << "\n\n";
