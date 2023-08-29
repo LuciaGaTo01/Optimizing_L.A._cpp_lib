@@ -118,25 +118,6 @@ namespace LA_lib {
         [[nodiscard]] constexpr size_t
         size() const noexcept { return (buffer.size()); }
 
-        constexpr void
-        resize(size_t rn, size_t cn)
-        {
-            if (rn == 0 || cn == 0) {
-                buffer.resize(0);
-                buffer.shrink_to_fit();
-                nrows = 0;
-                ncols = 0;
-            }
-
-            if (rn != nrows || cn != ncols) {
-                buffer.reserve(rn * cn);
-                buffer.resize(rn * cn);
-                buffer.shrink_to_fit();
-                nrows = rn;
-                ncols = cn;
-            }
-        }
-
 
 // ==============================================================================
 //                            MATRIX MODIFIERS
@@ -180,15 +161,23 @@ namespace LA_lib {
             }
         }
 
-        matrix<T> operator-()
+        constexpr void
+        resize(size_t rn, size_t cn)
         {
-            matrix<T> m{nrows, ncols};
-            for (int i = 0; i < nrows; ++i) {
-                for (int j = 0; j < ncols; ++j) {
-                    m(i, j) = -this->operator()(i, j);
-                }
+            if (rn == 0 || cn == 0) {
+                buffer.resize(0);
+                buffer.shrink_to_fit();
+                nrows = 0;
+                ncols = 0;
             }
-            return m;
+
+            if (rn != nrows || cn != ncols) {
+                buffer.reserve(rn * cn);
+                buffer.resize(rn * cn);
+                buffer.shrink_to_fit();
+                nrows = rn;
+                ncols = cn;
+            }
         }
 
 
@@ -325,6 +314,17 @@ namespace LA_lib {
         void operator-=(M const &rhs)
         {
             minus_equal_matrix<matrix<T>, M>(*this, rhs);
+        }
+
+        matrix<T> operator-()
+        {
+            matrix<T> m{nrows, ncols};
+            for (int i = 0; i < nrows; ++i) {
+                for (int j = 0; j < ncols; ++j) {
+                    m(i, j) = -this->operator()(i, j);
+                }
+            }
+            return m;
         }
 
         // --------------------------- MATRIX PRODUCT ---------------------------

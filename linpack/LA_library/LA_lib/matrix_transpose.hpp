@@ -90,21 +90,22 @@ namespace LA_lib{
             matt.swap_rows(c1,c2);
         }
 
+
+// ==============================================================================
+//                      ARITHMETIC OPERATORS OVERLOADING
+// ==============================================================================
+
+        // --------------------------- SUBTRACTION ---------------------------
+        
         matrix_transpose<M> operator-()
         {
             matrix_transpose<M> m{-matt};
             return m;
         }
 
-
-// ==============================================================================
-//                      ARITHMETIC OPERATORS OVERLOADING
-// ==============================================================================
-
         // --------------------------- COMPARISON ---------------------------
 
         matrix_transpose<M> operator==(matrix_transpose<M> const &rhs)
-
         {
             return matt == rhs.matt;
         }
