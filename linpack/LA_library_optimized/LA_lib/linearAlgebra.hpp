@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <vector>
+#include <assert.h>
 #include "checker.hpp"
 #include "matrix_operators.hpp"
 #include "matrix.hpp"

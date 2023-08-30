@@ -43,21 +43,9 @@ namespace LA_lib{
 //                            MATRIX VIEW DATA ACCESS
 // ==============================================================================
 
-        T operator()(int ri, int ci) const
-        {
-            if (ri >= nrows || ci >= ncols)
-                throw std::out_of_range("Index is out of range");
+        T operator()(int ri, int ci) const{ return matt(ci, ri); }
 
-            return matt(ci, ri);
-        }
-
-        T &operator()(int ri, int ci)
-        {
-            if (ri >= nrows || ci >= ncols)
-                throw std::out_of_range("Index is out of range");
-
-            return matt(ci, ri);
-        }
+        T &operator()(int ri, int ci){ return matt(ci, ri); }
 
         T operator()(int i) const { return matt(i); }
 

@@ -80,16 +80,14 @@ namespace LA_lib {
 
         T operator()(int i) const
         {
-            if (nrows > 1 && ncols > 1)
-            	throw std::invalid_argument("2D object cannot be accessed by single index");
+            assert((nrows == 1 || ncols == 1 && "2D object cannot be accessed by single index"));
 
             return buffer[i];
         }
 
         T &operator()(int i)
         {
-            if (nrows > 1 && ncols > 1)
-            	throw std::invalid_argument("2D object cannot be accessed by single index");
+            assert((nrows == 1 || ncols == 1 && "2D object cannot be accessed by single index"));
 
             return buffer[i];
         }
@@ -126,11 +124,9 @@ namespace LA_lib {
         constexpr void
         swap_rows(int r1, int r2)
         {
-            if (r1 < 0 || r2 < 0)
-            	throw std::invalid_argument("Invalid negative index");
+            assert((r1 > 0 && r2 > 0 && "Invalid negative index"));
 
-            if (r1 >= nrows || r2 >= nrows)
-                throw std::out_of_range("Row index is out of range");
+            assert((r1 < nrows && r2 < nrows && "Row index is out of range"));
 
             if (r1 != r2) {
                 T aux;
@@ -145,11 +141,9 @@ namespace LA_lib {
         constexpr void
         swap_columns(int c1, int c2)
         {
-            if (c1 < 0 || c2 < 0)
-            	throw std::invalid_argument("Invalid negative index");
+            assert((c1 > 0 && c2 > 0 && "Invalid negative index"));
 
-            if (c1 >= ncols || c2 >= ncols)
-                throw std::out_of_range("Column index is out of range");
+            assert((c1 < nrows && c2 < nrows && "Column index is out of range"));
 
             if (c1 != c2) {
                 T aux;
@@ -164,6 +158,8 @@ namespace LA_lib {
         constexpr void
         resize(size_t rn, size_t cn)
         {
+            assert(((rn == 0 && cn == 0) || (rn > 0 && cn > 0) && "Invalid matrix size"));
+        
             if (rn == 0 || cn == 0) {
                 buffer.resize(0);
                 buffer.shrink_to_fit();
@@ -218,8 +214,7 @@ namespace LA_lib {
 
         matrix<T> &operator=(std::initializer_list <std::initializer_list<T>> const &rhs)
         {
-            if (!check_equal_size_rows(rhs))
-            	throw std::domain_error("The number of columns must be equal in every row");
+            assert((check_equal_size_rows(rhs) && "The number of columns must be equal in every row"));
 
             if (is_list_empty(rhs)) {
                 this->resize(0, 0);
@@ -246,9 +241,9 @@ namespace LA_lib {
 
         matrix<T> &operator=(matrix_view<T> const &rhs)
         {
-            if (nrows != rhs.rows() || ncols != rhs.columns())
-                throw std::domain_error("Both matrices must have the same size");
-
+            assert((nrows == rhs.rows() && ncols == rhs.columns()
+                    && "Both matrices must have the same size"));
+                    
             for (int i = 0; i < nrows; ++i){
                 for (int j = 0; j < ncols; ++j){
                     this->operator()(i,j) = rhs(i,j);
@@ -263,8 +258,8 @@ namespace LA_lib {
         requires
         contain_same_element_type<typename M::element_type, T>
         {
-            if (nrows != rhs.rows() || ncols != rhs.columns())
-                throw std::domain_error("Both matrices must have the same size");
+            assert((nrows == rhs.rows() && ncols == rhs.columns()
+                    && "Both matrices must have the same size"));
 
             for (int i = 0; i < nrows; ++i){
                 for (int j = 0; j < ncols; ++j){
